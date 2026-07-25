@@ -62,15 +62,15 @@ export interface PrivacyPolicyConfig {
   dpoEmail: string;
 }
 
-// --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif with Auto-Disappearing Cursor) ---
+// --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif with Glowing Emerald Beam Cursor) ---
 function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number }) {
   const [displayedText, setDisplayedText] = useState('');
-  const [isTypingComplete, setIsTypingComplete] = useState(false);
+  const [isTyping, setIsTyping] = useState(true);
   const indexRef = useRef(0);
 
   useEffect(() => {
     setDisplayedText('');
-    setIsTypingComplete(false);
+    setIsTyping(true);
     indexRef.current = 0;
 
     const timer = setInterval(() => {
@@ -78,7 +78,7 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
         setDisplayedText(text.slice(0, indexRef.current + 1));
         indexRef.current += 1;
       } else {
-        setIsTypingComplete(true);
+        setIsTyping(false);
         clearInterval(timer);
       }
     }, speed);
@@ -92,7 +92,7 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
       style={{ fontFamily: "'Newsreader', 'Georgia', 'Cambria', serif", fontStyle: 'italic', fontWeight: 400 }}
     >
       <span>{displayedText}</span>
-      {!isTypingComplete && (
+      {isTyping && (
         <span className="inline-block w-[3px] h-[0.85em] bg-emerald-400 rounded-full ml-2 shadow-[0_0_14px_rgba(52,211,153,0.95)] animate-pulse shrink-0" />
       )}
     </h3>
@@ -279,6 +279,7 @@ export function PrivacyPolicyGenerator() {
   const [isEditable, setIsEditable] = useState<boolean>(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
+  // Focus container ref for scroll locking viewport focus
   const questionBoxRef = useRef<HTMLDivElement>(null);
 
   // Business state
@@ -333,6 +334,7 @@ export function PrivacyPolicyGenerator() {
     }));
   }, []);
 
+  // Smooth scroll focus to center active question box in viewport when question changes
   useEffect(() => {
     if (activeTab === 'wizard' && questionBoxRef.current) {
       questionBoxRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -611,14 +613,6 @@ export function PrivacyPolicyGenerator() {
     }
   ];
 
-  const CHAPTER_TITLES = [
-    'CHAPTER I • ORIGIN',
-    'CHAPTER II • JURISDICTION',
-    'CHAPTER III • DATA FOOTPRINT',
-    'CHAPTER IV • TECH ENGINE',
-    'CHAPTER V • LEGAL SEAL'
-  ];
-
   // Micro-question step navigation handlers
   const handleChapter1Next = () => {
     if (subQuestionIndex < 4) {
@@ -673,9 +667,7 @@ export function PrivacyPolicyGenerator() {
   };
 
   return (
-    <div id="generator-workspace" className="w-full max-w-3xl mx-auto font-sans relative" ref={questionBoxRef}>
-      {/* Background Ambient Glow */}
-      <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
+    <div id="generator-workspace" className="w-full max-w-3xl mx-auto font-sans" ref={questionBoxRef}>
 
       {copyFeedback && (
         <div className="fixed top-20 right-5 z-50 px-4 py-2.5 bg-slate-900 border border-slate-700 text-stone-50 text-xs font-bold rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
@@ -686,455 +678,427 @@ export function PrivacyPolicyGenerator() {
 
       {/* TAB 1: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
       {activeTab === 'wizard' && (
-        <div className="min-h-[70vh] sm:min-h-[76vh] flex flex-col justify-center my-2">
-          {/* Glass Card Container around questionnaire */}
-          <div className="p-6 sm:p-10 bg-slate-950/60 border border-slate-800/90 rounded-3xl backdrop-blur-2xl shadow-2xl relative overflow-hidden">
-            {/* Top Ambient Beam */}
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-emerald-500/0 via-emerald-400/50 to-indigo-500/0"></div>
-
-            {/* Micro Chapter Header Pill */}
-            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-900">
-              <span className="text-[11px] font-mono font-bold tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                {CHAPTER_TITLES[wizardStep - 1] || 'CHAPTER'}
-              </span>
-
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3, 4, 5].map(stepNum => (
-                  <div
-                    key={stepNum}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      stepNum === wizardStep
-                        ? 'w-6 bg-emerald-400'
-                        : stepNum < wizardStep
-                        ? 'w-2 bg-slate-700'
-                        : 'w-2 bg-slate-800/60'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <Stepper
-              hideIndicators={true}
-              hideFooter={true}
-              initialStep={wizardStep}
-              onStepChange={(step: number) => {
-                setWizardStep(step);
-                setSubQuestionIndex(0);
-              }}
-              onFinalStepCompleted={() => setActiveTab('preview')}
-            >
-              {/* CHAPTER 1: THE ORIGIN (ONE QUESTION AT A TIME) */}
-              <Step>
-                <div className="max-w-xl mx-auto min-h-[360px] flex flex-col justify-between">
-                  <div>
-                    {subQuestionIndex === 0 && (
-                      <div>
-                        <TypewriterHeading text="What type of digital product are you creating?" />
-                        <div className="grid grid-cols-1 gap-3.5 mt-6">
-                          {[
-                            { type: 'website', title: 'Website or Web Application', desc: 'SaaS platforms, blogs, online stores, landing pages.' },
-                            { type: 'app', title: 'Mobile App', desc: 'iOS App Store or Android Google Play native apps.' },
-                            { type: 'both', title: 'Both Website & Mobile App', desc: 'Cross-platform ecosystem across web and mobile stores.' }
-                          ].map(item => (
-                            <div
-                              key={item.type}
-                              onClick={() => {
-                                setBusiness({ ...business, platformType: item.type as any });
-                                handleChapter1Next();
-                              }}
-                              className={`p-4.5 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-center justify-between ${
-                                business.platformType === item.type
-                                  ? 'bg-slate-900/90 border-emerald-500/50 text-stone-50 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
-                                  : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200 hover:bg-slate-900/40'
-                              }`}
-                            >
-                              <div>
-                                <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>{item.title}</h4>
-                                <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{item.desc}</p>
-                              </div>
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                                business.platformType === item.type ? 'bg-emerald-400 text-slate-950 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'border border-slate-700 bg-slate-950'
-                              }`}>
-                                {business.platformType === item.type && (
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {subQuestionIndex === 1 && (
-                      <div>
-                        <TypewriterHeading text="What is your product or website called?" />
-                        <div className="mt-6">
-                          <input
-                            type="text"
-                            autoFocus
-                            value={business.name}
-                            onChange={e => setBusiness({ ...business, name: e.target.value })}
-                            onKeyDown={e => e.key === 'Enter' && business.name.trim() && handleChapter1Next()}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 mb-2 font-medium transition-all"
-                            placeholder="e.g. Acme SaaS"
-                          />
-                          <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {subQuestionIndex === 2 && (
-                      <div>
-                        <TypewriterHeading text="What is the official company or owner entity name?" />
-                        <div className="mt-6">
-                          <input
-                            type="text"
-                            autoFocus
-                            value={business.companyName}
-                            onChange={e => setBusiness({ ...business, companyName: e.target.value })}
-                            onKeyDown={e => e.key === 'Enter' && business.companyName.trim() && handleChapter1Next()}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 mb-2 font-medium transition-all"
-                            placeholder="e.g. Acme Studio Inc."
-                          />
-                          <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {subQuestionIndex === 3 && (
-                      <div>
-                        <TypewriterHeading text="What is your official website URL?" />
-                        <div className="mt-6">
-                          <input
-                            type="url"
-                            autoFocus
-                            value={business.url}
-                            onChange={e => setBusiness({ ...business, url: e.target.value })}
-                            onKeyDown={e => e.key === 'Enter' && business.url.trim() && handleChapter1Next()}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 mb-2 font-medium transition-all"
-                            placeholder="https://example.com"
-                          />
-                          <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {subQuestionIndex === 4 && (
-                      <div>
-                        <TypewriterHeading text="Where is your business legally registered?" />
-                        <div className="mt-6">
-                          <CustomDropdown
-                            value={business.businessCountry}
-                            onChange={val => handleCountryChange(val)}
-                            options={COUNTRY_OPTIONS}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                    {subQuestionIndex > 0 ? (
-                      <button
-                        type="button"
-                        onClick={handleChapter1Back}
-                        className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                      >
-                        ← Previous Question
-                      </button>
-                    ) : <div />}
-
-                    <button
-                      type="button"
-                      onClick={handleChapter1Next}
-                      disabled={
-                        (subQuestionIndex === 1 && !business.name.trim()) ||
-                        (subQuestionIndex === 2 && !business.companyName.trim()) ||
-                        (subQuestionIndex === 3 && !business.url.trim())
-                      }
-                      className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed interactive-press shadow-md"
-                    >
-                      {subQuestionIndex === 4 ? 'Continue →' : 'Continue →'}
-                    </button>
-                  </div>
-                </div>
-              </Step>
-
-              {/* CHAPTER 2: THE AUDIENCE & TERRITORY */}
-              <Step>
-                <div className="max-w-xl mx-auto min-h-[360px] flex flex-col justify-between">
-                  <div>
-                    <TypewriterHeading text="Where do your users reside?" />
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
-                      Privacy laws apply based on visitor residence. Recommended frameworks were auto-configured for {COUNTRY_OPTIONS.find(c => c.value === business.businessCountry)?.label}.
-                    </p>
-
-                    <div className="space-y-3">
-                      {REGION_CARDS.map(region => {
-                        const isSelected = region.lawIds.every(id => selectedLaws.includes(id));
-                        return (
+        <div className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-2">
+          <Stepper
+            hideIndicators={true}
+            hideFooter={true}
+            initialStep={wizardStep}
+            onStepChange={(step: number) => {
+              setWizardStep(step);
+              setSubQuestionIndex(0);
+            }}
+            onFinalStepCompleted={() => setActiveTab('preview')}
+          >
+            {/* CHAPTER 1: THE ORIGIN (ONE QUESTION AT A TIME) */}
+            <Step>
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  {subQuestionIndex === 0 && (
+                    <div>
+                      <TypewriterHeading text="What type of digital product are you creating?" />
+                      <div className="grid grid-cols-1 gap-3 mt-6">
+                        {[
+                          { type: 'website', title: 'Website or Web Application', desc: 'SaaS platforms, blogs, online stores, landing pages.' },
+                          { type: 'app', title: 'Mobile App', desc: 'iOS App Store or Android Google Play native apps.' },
+                          { type: 'both', title: 'Both Website & Mobile App', desc: 'Cross-platform ecosystem across web and mobile stores.' }
+                        ].map(item => (
                           <div
-                            key={region.id}
+                            key={item.type}
                             onClick={() => {
-                              if (isSelected) {
-                                setSelectedLaws(selectedLaws.filter(id => !region.lawIds.includes(id)));
-                              } else {
-                                const newLaws = Array.from(new Set([...selectedLaws, ...region.lawIds]));
-                                setSelectedLaws(newLaws);
-                              }
+                              setBusiness({ ...business, platformType: item.type as any });
+                              handleChapter1Next();
                             }}
-                            className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
-                              isSelected
-                                ? 'bg-slate-900/90 border-emerald-500/50 text-stone-50 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
+                            className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-center justify-between ${
+                              business.platformType === item.type
+                                ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
                                 : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                             }`}
                           >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                                  {region.title}
-                                </h4>
-                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                                  {region.badge}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-400 leading-relaxed">{region.desc}</p>
+                            <div>
+                              <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>{item.title}</h4>
+                              <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{item.desc}</p>
                             </div>
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                              business.platformType === item.type ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                            }`}>
+                              {business.platformType === item.type && (
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                              isSelected ? 'bg-emerald-400 text-slate-950 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'border border-slate-700 bg-slate-950'
+                  {subQuestionIndex === 1 && (
+                    <div>
+                      <TypewriterHeading text="What is your product or website called?" />
+                      <div className="mt-6">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={business.name}
+                          onChange={e => setBusiness({ ...business, name: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && business.name.trim() && handleChapter1Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="e.g. Acme SaaS"
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 2 && (
+                    <div>
+                      <TypewriterHeading text="What is the official company or owner entity name?" />
+                      <div className="mt-6">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={business.companyName}
+                          onChange={e => setBusiness({ ...business, companyName: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && business.companyName.trim() && handleChapter1Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="e.g. Acme Studio Inc."
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 3 && (
+                    <div>
+                      <TypewriterHeading text="What is your official website URL?" />
+                      <div className="mt-6">
+                        <input
+                          type="url"
+                          autoFocus
+                          value={business.url}
+                          onChange={e => setBusiness({ ...business, url: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && business.url.trim() && handleChapter1Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="https://example.com"
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 4 && (
+                    <div>
+                      <TypewriterHeading text="Where is your business legally registered?" />
+                      <div className="mt-6">
+                        <CustomDropdown
+                          value={business.businessCountry}
+                          onChange={val => handleCountryChange(val)}
+                          options={COUNTRY_OPTIONS}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
+                  {subQuestionIndex > 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleChapter1Back}
+                      className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                    >
+                      ← Previous Question
+                    </button>
+                  ) : <div />}
+
+                  <button
+                    type="button"
+                    onClick={handleChapter1Next}
+                    disabled={
+                      (subQuestionIndex === 1 && !business.name.trim()) ||
+                      (subQuestionIndex === 2 && !business.companyName.trim()) ||
+                      (subQuestionIndex === 3 && !business.url.trim())
+                    }
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed interactive-press"
+                  >
+                    {subQuestionIndex === 4 ? 'Continue →' : 'Continue →'}
+                  </button>
+                </div>
+              </div>
+            </Step>
+
+            {/* CHAPTER 2: THE AUDIENCE & TERRITORY */}
+            <Step>
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  <TypewriterHeading text="Where do your users reside?" />
+                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
+                    Privacy laws apply based on visitor residence. Recommended frameworks were auto-configured for {COUNTRY_OPTIONS.find(c => c.value === business.businessCountry)?.label}.
+                  </p>
+
+                  <div className="space-y-3">
+                    {REGION_CARDS.map(region => {
+                      const isSelected = region.lawIds.every(id => selectedLaws.includes(id));
+                      return (
+                        <div
+                          key={region.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedLaws(selectedLaws.filter(id => !region.lawIds.includes(id)));
+                            } else {
+                              const newLaws = Array.from(new Set([...selectedLaws, ...region.lawIds]));
+                              setSelectedLaws(newLaws);
+                            }
+                          }}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
+                            isSelected
+                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                                {region.title}
+                              </h4>
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                                {region.badge}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 leading-relaxed">{region.desc}</p>
+                          </div>
+
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                            isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                          }`}>
+                            {isSelected && (
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWizardStep(1);
+                      setSubQuestionIndex(4);
+                    }}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                  >
+                    ← Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWizardStep(3);
+                      setSubQuestionIndex(0);
+                    }}
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </div>
+            </Step>
+
+            {/* CHAPTER 3: THE DATA FOOTPRINT */}
+            <Step>
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  <TypewriterHeading text="What personal data passes through your product?" />
+                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
+                    Only select data types your platform actively processes. Keeping options minimal builds transparency.
+                  </p>
+
+                  <div className="space-y-3">
+                    {DATA_CATEGORIES.map(cat => {
+                      const isChecked = dataCollected[cat.key as keyof DataCollectedOptions];
+                      return (
+                        <div
+                          key={cat.key}
+                          onClick={() => setDataCollected({ ...dataCollected, [cat.key]: !isChecked })}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
+                            isChecked
+                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                              {cat.title}
+                            </h4>
+                            <p className="text-xs text-slate-400 leading-relaxed">{cat.desc}</p>
+                          </div>
+
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                            isChecked ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                          }`}>
+                            {isChecked && (
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(2)}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                  >
+                    ← Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(4)}
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </div>
+            </Step>
+
+            {/* CHAPTER 4: THE TECH ENGINE */}
+            <Step>
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  <TypewriterHeading text="Which third-party services power your app?" />
+                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
+                    Select tools in your tech stack. Required third-party legal disclosures will be auto-inserted.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {TECH_SERVICES_LIBRARY.map(service => {
+                      const isSelected = selectedServices.includes(service.id);
+                      return (
+                        <div
+                          key={service.id}
+                          onClick={() => toggleService(service.id)}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-xs text-stone-50">{service.name}</span>
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                              isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
                             }`}>
                               {isSelected && (
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
                               )}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWizardStep(1);
-                        setSubQuestionIndex(4);
-                      }}
-                      className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                    >
-                      ← Previous
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWizardStep(3);
-                        setSubQuestionIndex(0);
-                      }}
-                      className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
-                    >
-                      Continue →
-                    </button>
-                  </div>
-                </div>
-              </Step>
-
-              {/* CHAPTER 3: THE DATA FOOTPRINT */}
-              <Step>
-                <div className="max-w-xl mx-auto min-h-[360px] flex flex-col justify-between">
-                  <div>
-                    <TypewriterHeading text="What personal data passes through your product?" />
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
-                      Only select data types your platform actively processes. Keeping options minimal builds transparency.
-                    </p>
-
-                    <div className="space-y-3">
-                      {DATA_CATEGORIES.map(cat => {
-                        const isChecked = dataCollected[cat.key as keyof DataCollectedOptions];
-                        return (
-                          <div
-                            key={cat.key}
-                            onClick={() => setDataCollected({ ...dataCollected, [cat.key]: !isChecked })}
-                            className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
-                              isChecked
-                                ? 'bg-slate-900/90 border-emerald-500/50 text-stone-50 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
-                                : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                            }`}
-                          >
-                            <div className="flex-1">
-                              <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                                {cat.title}
-                              </h4>
-                              <p className="text-xs text-slate-400 leading-relaxed">{cat.desc}</p>
-                            </div>
-
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                              isChecked ? 'bg-emerald-400 text-slate-950 shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'border border-slate-700 bg-slate-950'
-                            }`}>
-                              {isChecked && (
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep(2)}
-                      className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                    >
-                      ← Previous
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep(4)}
-                      className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
-                    >
-                      Continue →
-                    </button>
-                  </div>
-                </div>
-              </Step>
-
-              {/* CHAPTER 4: THE TECH ENGINE */}
-              <Step>
-                <div className="max-w-xl mx-auto min-h-[360px] flex flex-col justify-between">
-                  <div>
-                    <TypewriterHeading text="Which third-party services power your app?" />
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
-                      Select tools in your tech stack. Required third-party legal disclosures will be auto-inserted.
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {TECH_SERVICES_LIBRARY.map(service => {
-                        const isSelected = selectedServices.includes(service.id);
-                        return (
-                          <div
-                            key={service.id}
-                            onClick={() => toggleService(service.id)}
-                            className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex flex-col justify-between ${
-                              isSelected
-                                ? 'bg-slate-900/90 border-emerald-500/50 text-stone-50 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
-                                : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-xs text-stone-50">{service.name}</span>
-                              <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                                isSelected ? 'bg-emerald-400 text-slate-950 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'border border-slate-700 bg-slate-950'
-                              }`}>
-                                {isSelected && (
-                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-[11px] text-slate-400 leading-relaxed">{service.plainSummary}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep(3)}
-                      className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                    >
-                      ← Previous
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWizardStep(5);
-                        setSubQuestionIndex(0);
-                      }}
-                      className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
-                    >
-                      Continue →
-                    </button>
-                  </div>
-                </div>
-              </Step>
-
-              {/* CHAPTER 5: THE LEGAL SEAL */}
-              <Step>
-                <div className="max-w-xl mx-auto min-h-[360px] flex flex-col justify-between">
-                  <div>
-                    {subQuestionIndex === 0 && (
-                      <div>
-                        <TypewriterHeading text="Where should users send privacy & deletion inquiries?" />
-                        <div className="mt-6">
-                          <input
-                            type="email"
-                            autoFocus
-                            value={business.contactEmail}
-                            onChange={e => setBusiness({ ...business, contactEmail: e.target.value })}
-                            onKeyDown={e => e.key === 'Enter' && business.contactEmail.trim() && handleChapter5Next()}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 mb-2 font-medium transition-all"
-                            placeholder="privacy@example.com"
-                          />
-                          <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                          <p className="text-[11px] text-slate-400 leading-relaxed">{service.plainSummary}</p>
                         </div>
-                      </div>
-                    )}
-
-                    {subQuestionIndex === 1 && (
-                      <div>
-                        <TypewriterHeading text="How many months do you retain user data?" />
-                        <div className="mt-6">
-                          <input
-                            type="number"
-                            autoFocus
-                            value={dataRetentionMonths}
-                            onChange={e => setDataRetentionMonths(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleChapter5Next()}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 mb-2 font-medium transition-all"
-                            placeholder="24"
-                          />
-                          <p className="text-xs text-slate-500 font-mono">Months (default: 24 months)</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                    <button
-                      type="button"
-                      onClick={handleChapter5Back}
-                      className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                    >
-                      ← Previous
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleChapter5Next}
-                      className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press shadow-md"
-                    >
-                      {subQuestionIndex === 1 ? 'Generate Privacy Policy →' : 'Continue →'}
-                    </button>
+                      );
+                    })}
                   </div>
                 </div>
-              </Step>
-            </Stepper>
-          </div>
+
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(3)}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                  >
+                    ← Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWizardStep(5);
+                      setSubQuestionIndex(0);
+                    }}
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </div>
+            </Step>
+
+            {/* CHAPTER 5: THE LEGAL SEAL */}
+            <Step>
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  {subQuestionIndex === 0 && (
+                    <div>
+                      <TypewriterHeading text="Where should users send privacy & deletion inquiries?" />
+                      <div className="mt-6">
+                        <input
+                          type="email"
+                          autoFocus
+                          value={business.contactEmail}
+                          onChange={e => setBusiness({ ...business, contactEmail: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && business.contactEmail.trim() && handleChapter5Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="privacy@example.com"
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 1 && (
+                    <div>
+                      <TypewriterHeading text="How many months do you retain user data?" />
+                      <div className="mt-6">
+                        <input
+                          type="number"
+                          autoFocus
+                          value={dataRetentionMonths}
+                          onChange={e => setDataRetentionMonths(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleChapter5Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="24"
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Months (default: 24 months)</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
+                  <button
+                    type="button"
+                    onClick={handleChapter5Back}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                  >
+                    ← Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleChapter5Next}
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                  >
+                    {subQuestionIndex === 1 ? 'Generate Privacy Policy →' : 'Continue →'}
+                  </button>
+                </div>
+              </div>
+            </Step>
+          </Stepper>
         </div>
       )}
 
