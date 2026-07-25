@@ -1,0 +1,1 @@
+# tool-privacy-policy-generator
