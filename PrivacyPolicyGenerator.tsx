@@ -710,13 +710,13 @@ export function PrivacyPolicyGenerator() {
                   setWizardStep(1);
                   setSubQuestionIndex(0);
                 }}
-                className="cursor-pointer transition-all duration-500 ease-out hover:scale-[1.025]"
+                className="group cursor-pointer transition-all duration-700 ease-out hover:scale-[1.018]"
               >
                 <div className="px-10 py-4 sm:py-5 flex items-center justify-center gap-3">
                   <span className="text-base sm:text-lg font-extrabold text-stone-50 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
                     Start Generating Policy
                   </span>
-                  <span className="text-emerald-400 font-bold text-xl">→</span>
+                  <span className="text-emerald-400 font-bold text-xl transition-transform duration-500 group-hover:translate-x-1">→</span>
                 </div>
               </BorderGlow>
             </div>
