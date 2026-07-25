@@ -62,13 +62,15 @@ export interface PrivacyPolicyConfig {
   dpoEmail: string;
 }
 
-// --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif with Glowing Emerald Beam Cursor) ---
+// --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif with Auto-Disappearing Cursor) ---
 function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number }) {
   const [displayedText, setDisplayedText] = useState('');
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
   const indexRef = useRef(0);
 
   useEffect(() => {
     setDisplayedText('');
+    setIsTypingComplete(false);
     indexRef.current = 0;
 
     const timer = setInterval(() => {
@@ -76,6 +78,7 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
         setDisplayedText(text.slice(0, indexRef.current + 1));
         indexRef.current += 1;
       } else {
+        setIsTypingComplete(true);
         clearInterval(timer);
       }
     }, speed);
@@ -89,7 +92,9 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
       style={{ fontFamily: "'Newsreader', 'Georgia', 'Cambria', serif", fontStyle: 'italic', fontWeight: 400 }}
     >
       <span>{displayedText}</span>
-      <span className="inline-block w-[3px] h-[0.85em] bg-emerald-400 rounded-full ml-2 shadow-[0_0_14px_rgba(52,211,153,0.95)] animate-pulse shrink-0" />
+      {!isTypingComplete && (
+        <span className="inline-block w-[3px] h-[0.85em] bg-emerald-400 rounded-full ml-2 shadow-[0_0_14px_rgba(52,211,153,0.95)] animate-pulse shrink-0" />
+      )}
     </h3>
   );
 }
@@ -684,7 +689,7 @@ export function PrivacyPolicyGenerator() {
         <div className="min-h-[70vh] sm:min-h-[76vh] flex flex-col justify-center my-2">
           {/* Glass Card Container around questionnaire */}
           <div className="p-6 sm:p-10 bg-slate-950/60 border border-slate-800/90 rounded-3xl backdrop-blur-2xl shadow-2xl relative overflow-hidden">
-            <!-- Top Ambient Beam -->
+            {/* Top Ambient Beam */}
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-emerald-500/0 via-emerald-400/50 to-indigo-500/0"></div>
 
             {/* Micro Chapter Header Pill */}
