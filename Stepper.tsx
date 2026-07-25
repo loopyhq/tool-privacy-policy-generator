@@ -1,4 +1,4 @@
-import React, { useState, Children, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, Children, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import './Stepper.css';
@@ -44,6 +44,15 @@ export default function Stepper({
 }: StepperProps) {
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [direction, setDirection] = useState(0);
+
+  // Keep Stepper in sync when parent changes initialStep (controlled navigation)
+  useEffect(() => {
+    if (initialStep !== currentStep) {
+      setDirection(initialStep > currentStep ? 1 : -1);
+      setCurrentStep(initialStep);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStep]);
   const stepsArray = Children.toArray(children);
   const totalSteps = stepsArray.length;
   const isCompleted = currentStep > totalSteps;

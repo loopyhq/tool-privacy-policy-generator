@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import Stepper, { Step } from './Stepper';
+import { motion, AnimatePresence } from 'motion/react';
 import BorderGlow from '../../components/BorderGlow';
 import typingMp3 from './typing.mp3';
 
@@ -98,13 +98,23 @@ function TypewriterHeading({ text, speed = 35, isMuted = false }: { text: string
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const indexRef = useRef(0);
+  const isMutedRef = useRef(isMuted);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+    if (isMuted) {
+      stopTypingAudio();
+    } else if (isTyping) {
+      startTypingAudio(false);
+    }
+  }, [isMuted, isTyping]);
 
   useEffect(() => {
     setDisplayedText('');
     setIsTyping(true);
     indexRef.current = 0;
 
-    startTypingAudio(isMuted);
+    startTypingAudio(isMutedRef.current);
 
     const timer = setInterval(() => {
       if (indexRef.current < text.length) {
@@ -121,7 +131,7 @@ function TypewriterHeading({ text, speed = 35, isMuted = false }: { text: string
       clearInterval(timer);
       stopTypingAudio();
     };
-  }, [text, speed, isMuted]);
+  }, [text, speed]);
 
   return (
     <h3
@@ -146,16 +156,21 @@ function CustomDropdown({
   value,
   onChange,
   options,
-  placeholder = 'Type to search country...'
+  placeholder = 'Type to search country...',
+  onEnter,
+  autoFocus = true
 }: {
   value: string;
   onChange: (val: string) => void;
   options: CustomDropdownOption[];
   placeholder?: string;
+  onEnter?: () => void;
+  autoFocus?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const hasInteracted = useRef(false);
 
   const selectedOption = options.find(o => o.value === value);
 
@@ -193,12 +208,31 @@ function CustomDropdown({
       <div className="relative flex items-center">
         <input
           type="text"
+          autoFocus={autoFocus}
           value={searchTerm}
           onChange={e => {
             setSearchTerm(e.target.value);
             setIsOpen(true);
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => { if (hasInteracted.current) setIsOpen(true); }}
+          onClick={() => { hasInteracted.current = true; setIsOpen(true); }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isOpen && filteredOptions.length > 0) {
+                const chosen = filteredOptions.find(o => o.value === value) || filteredOptions[0];
+                onChange(chosen.value);
+                setSearchTerm(chosen.label);
+                setIsOpen(false);
+              } else {
+                setIsOpen(false);
+              }
+              onEnter?.();
+            } else if (e.key === 'Escape') {
+              setIsOpen(false);
+            }
+          }}
           className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 pr-12 text-base text-stone-50 transition-all hover:border-slate-700 focus:outline-none focus:border-slate-600 font-medium placeholder-slate-500"
           placeholder={placeholder}
         />
@@ -252,6 +286,34 @@ function CustomDropdown({
         </div>
       )}
     </div>
+  );
+}
+
+// --- LUXURY QUICK OPTION CHIP COMPONENT ---
+function LuxuryQuickOption({
+  label,
+  isSelected,
+  onClick
+}: {
+  label: string;
+  isSelected?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 interactive-press ${
+        isSelected
+          ? 'bg-emerald-950/40 border border-emerald-500/50 text-emerald-300 shadow-[0_0_16px_rgba(52,211,153,0.18)]'
+          : 'bg-slate-900/50 hover:bg-slate-900/90 border border-slate-800/80 hover:border-emerald-500/40 text-slate-400 hover:text-stone-100 shadow-sm hover:shadow-[0_0_15px_rgba(52,211,153,0.12)]'
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+        isSelected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,1)]' : 'bg-slate-600 group-hover:bg-emerald-400 group-hover:shadow-[0_0_6px_rgba(52,211,153,0.8)]'
+      }`} />
+      <span>{label}</span>
+    </button>
   );
 }
 
@@ -343,16 +405,30 @@ const COUNTRY_OPTIONS: CustomDropdownOption[] = [
   { value: 'OTHER', label: 'Other Country' }
 ];
 
-export function PrivacyPolicyGenerator() {
-  const [viewState, setViewState] = useState<'landing' | 'wizard' | 'preview'>('landing');
+export function PrivacyPolicyGenerator({ defaultView = 'landing' }: { defaultView?: 'landing' | 'wizard' }) {
+  const [viewState, setViewState] = useState<'landing' | 'wizard' | 'preview'>(defaultView);
   const [wizardStep, setWizardStep] = useState<number>(1);
   const [subQuestionIndex, setSubQuestionIndex] = useState<number>(0);
+  const [direction, setDirection] = useState<number>(1);
+
+  const TOTAL_QUESTIONS = 10;
+  const globalQuestionIndex = useMemo(() => {
+    if (wizardStep === 1) return subQuestionIndex;         // 0-4
+    if (wizardStep === 2) return 5;
+    if (wizardStep === 3) return 6;
+    if (wizardStep === 4) return 7;
+    if (wizardStep === 5) return 8 + subQuestionIndex;    // 8-9
+    return 0;
+  }, [wizardStep, subQuestionIndex]);
+  const progressPercent = Math.round(((globalQuestionIndex + 1) / TOTAL_QUESTIONS) * 100);
   const [viewMode, setViewMode] = useState<'legal' | 'plain'>('legal');
   const [isEditable, setIsEditable] = useState<boolean>(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   // Focus container ref for scroll locking viewport focus
   const questionBoxRef = useRef<HTMLDivElement>(null);
+  const wizardRef = useRef<HTMLDivElement>(null);
+  const handleCurrentStepNextRef = useRef<() => void>(() => {});
 
   // Business state
   const [business, setBusiness] = useState<BusinessDetails>({
@@ -424,7 +500,7 @@ export function PrivacyPolicyGenerator() {
     }));
 
     const unlockAudio = () => {
-      getAudioContext();
+      getTypingAudio();
       window.removeEventListener('pointerdown', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
     };
@@ -442,6 +518,37 @@ export function PrivacyPolicyGenerator() {
       questionBoxRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [wizardStep, subQuestionIndex, viewState]);
+
+  // Always keep ref in sync with the latest handler so window listener never goes stale
+  useEffect(() => {
+    handleCurrentStepNextRef.current = handleCurrentStepNext;
+  });
+
+  // Auto-focus wizard container to steal focus away from Back button
+  useEffect(() => {
+    if (viewState === 'wizard' && wizardRef.current) {
+      wizardRef.current.focus();
+    }
+  }, [viewState, wizardStep, subQuestionIndex]);
+
+  // Global Enter key listener for wizard step progression
+  useEffect(() => {
+    if (viewState !== 'wizard') return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+        setDirection(1);
+        handleCurrentStepNextRef.current();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [viewState]);
 
   const triggerToast = (msg: string) => {
     setCopyFeedback(msg);
@@ -726,8 +833,27 @@ export function PrivacyPolicyGenerator() {
   };
 
   const handleChapter1Back = () => {
+    setDirection(-1);
     if (subQuestionIndex > 0) {
       setSubQuestionIndex(subQuestionIndex - 1);
+    }
+  };
+
+  // Unified back handler for wizard navigation
+  const handleWizardBack = () => {
+    setDirection(-1);
+    if (wizardStep === 1 && subQuestionIndex > 0) {
+      setSubQuestionIndex(subQuestionIndex - 1);
+    } else if (wizardStep === 2) {
+      setWizardStep(1); setSubQuestionIndex(4);
+    } else if (wizardStep === 3) {
+      setWizardStep(2); setSubQuestionIndex(0);
+    } else if (wizardStep === 4) {
+      setWizardStep(3); setSubQuestionIndex(0);
+    } else if (wizardStep === 5 && subQuestionIndex > 0) {
+      setSubQuestionIndex(subQuestionIndex - 1);
+    } else if (wizardStep === 5 && subQuestionIndex === 0) {
+      setWizardStep(4); setSubQuestionIndex(0);
     }
   };
 
@@ -744,6 +870,27 @@ export function PrivacyPolicyGenerator() {
       setSubQuestionIndex(subQuestionIndex - 1);
     } else {
       setWizardStep(4);
+    }
+  };
+
+  const handleCurrentStepNext = () => {
+    if (wizardStep === 1) {
+      if (subQuestionIndex === 1 && !business.name.trim()) return;
+      if (subQuestionIndex === 2 && !business.companyName.trim()) return;
+      if (subQuestionIndex === 3 && !business.url.trim()) return;
+      handleChapter1Next();
+    } else if (wizardStep === 2) {
+      setWizardStep(3);
+      setSubQuestionIndex(0);
+    } else if (wizardStep === 3) {
+      setWizardStep(4);
+      setSubQuestionIndex(0);
+    } else if (wizardStep === 4) {
+      setWizardStep(5);
+      setSubQuestionIndex(0);
+    } else if (wizardStep === 5) {
+      if (subQuestionIndex === 0 && !business.contactEmail.trim()) return;
+      handleChapter5Next();
     }
   };
 
@@ -769,7 +916,7 @@ export function PrivacyPolicyGenerator() {
   };
 
   return (
-    <div id="generator-workspace" className="w-full max-w-3xl mx-auto font-sans" ref={questionBoxRef}>
+    <div id="generator-workspace" className="w-full max-w-5xl mx-auto font-sans" ref={questionBoxRef}>
 
       {copyFeedback && (
         <div className="fixed top-20 right-5 z-50 px-4 py-2.5 bg-slate-900 border border-slate-700 text-stone-50 text-xs font-bold rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
@@ -796,30 +943,27 @@ export function PrivacyPolicyGenerator() {
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 my-8">
-              <BorderGlow
-                edgeSensitivity={30}
-                glowColor="160 84 65"
-                backgroundColor="#0f172a"
-                borderRadius={20}
-                glowRadius={35}
-                glowIntensity={1.2}
-                coneSpread={25}
-                animated={true}
-                colors={['#34d399', '#38bdf8', '#a855f7']}
-                onClick={() => {
-                  setViewState('wizard');
-                  setWizardStep(1);
-                  setSubQuestionIndex(0);
-                }}
-                className="group cursor-pointer transition-all duration-700 ease-out hover:scale-[1.018]"
-              >
-                <div className="px-10 py-4 sm:py-5 flex items-center justify-center gap-3">
-                  <span className="text-base sm:text-lg font-extrabold text-stone-50 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                    Start Generating Policy
-                  </span>
-                  <span className="text-emerald-400 font-bold text-xl transition-transform duration-500 group-hover:translate-x-1">→</span>
-                </div>
-              </BorderGlow>
+              <a href="/tools/privacy-policy-generator/create" className="block">
+                <BorderGlow
+                  edgeSensitivity={30}
+                  glowColor="160 84 65"
+                  backgroundColor="#0f172a"
+                  borderRadius={20}
+                  glowRadius={35}
+                  glowIntensity={1.2}
+                  coneSpread={25}
+                  animated={true}
+                  colors={['#34d399', '#38bdf8', '#a855f7']}
+                  className="group cursor-pointer transition-all duration-700 ease-out hover:scale-[1.018]"
+                >
+                  <div className="px-10 py-4 sm:py-5 flex items-center justify-center gap-3">
+                    <span className="text-base sm:text-lg font-extrabold text-stone-50 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                      Start Generating Policy
+                    </span>
+                    <span className="text-emerald-400 font-bold text-xl transition-transform duration-500 group-hover:translate-x-1">→</span>
+                  </div>
+                </BorderGlow>
+              </a>
             </div>
           </div>
 
@@ -854,13 +998,27 @@ export function PrivacyPolicyGenerator() {
 
       {/* STATE 2: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
       {viewState === 'wizard' && (
-        <div className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-2">
+        <div
+          className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-2 outline-none"
+          tabIndex={-1}
+          ref={wizardRef}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleCurrentStepNext();
+            }
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
               onClick={() => {
                 stopTypingAudio();
-                setViewState('landing');
+                if (defaultView === 'wizard') {
+                  window.location.href = '/tools/privacy-policy-generator';
+                } else {
+                  setViewState('landing');
+                }
               }}
               className="text-xs font-bold text-slate-500 hover:text-stone-50 transition-colors inline-flex items-center gap-1 interactive-press"
             >
@@ -870,38 +1028,67 @@ export function PrivacyPolicyGenerator() {
             <button
               type="button"
               onClick={toggleSound}
-              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-stone-50 hover:border-slate-700 transition-all flex items-center gap-1.5 interactive-press"
+              className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-300 flex items-center gap-2 interactive-press ${
+                isMuted
+                  ? 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                  : 'bg-slate-900 border-slate-700 text-stone-200 hover:border-emerald-500/50 hover:shadow-[0_0_12px_rgba(52,211,153,0.15)]'
+              }`}
               title={isMuted ? 'Unmute typing sound' : 'Mute typing sound'}
             >
               {isMuted ? (
                 <>
-                  <span className="text-slate-500">🔇</span>
+                  {/* Speaker muted / off */}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-slate-500">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <line x1="23" y1="9" x2="17" y2="15" />
+                    <line x1="17" y1="9" x2="23" y2="15" />
+                  </svg>
                   <span>Sound Off</span>
                 </>
               ) : (
                 <>
-                  <span className="text-emerald-400">🔊</span>
+                  {/* Speaker with sound waves */}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-emerald-400">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </svg>
                   <span className="text-stone-200">Sound On</span>
                 </>
               )}
             </button>
           </div>
 
-          <Stepper
-            hideIndicators={true}
-            hideFooter={true}
-            initialStep={wizardStep}
-            onStepChange={(step: number) => {
-              setWizardStep(step);
-              setSubQuestionIndex(0);
-            }}
-            onFinalStepCompleted={() => setViewState('preview')}
-          >
-            {/* CHAPTER 1: THE ORIGIN (CONNECTING & ENGAGING STORYTELLING) */}
-            <Step>
-              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+          {/* ── PROGRESS BAR ── */}
+          <div className="relative h-[2px] bg-slate-800/80 rounded-full overflow-hidden mb-8">
+            <motion.div
+              className="absolute inset-y-0 left-0 rounded-full"
+              style={{ background: 'linear-gradient(90deg, #059669, #34d399)' }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+            />
+          </div>
+
+          {/* ── ANIMATED QUESTION FLOW ── */}
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={`${wizardStep}-${subQuestionIndex}`}
+              custom={direction}
+              variants={{
+                enter: (dir: number) => ({ x: dir > 0 ? '30%' : '-30%', opacity: 0 }),
+                center: { x: '0%', opacity: 1 },
+                exit: (dir: number) => ({ x: dir > 0 ? '-15%' : '15%', opacity: 0 })
+              }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.32, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <div className="max-w-2xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  {subQuestionIndex === 0 && (
+
+                  {/* ── CH1 Q1: Product Type ── */}
+                  {wizardStep === 1 && subQuestionIndex === 0 && (
                     <div>
                       <TypewriterHeading text="What type of digital product are you creating?" isMuted={isMuted} />
                       <div className="grid grid-cols-1 gap-3 mt-6">
@@ -912,9 +1099,7 @@ export function PrivacyPolicyGenerator() {
                         ].map(item => (
                           <div
                             key={item.type}
-                            onClick={() => {
-                              setBusiness({ ...business, platformType: item.type as any });
-                            }}
+                            onClick={() => setBusiness({ ...business, platformType: item.type as any })}
                             className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-center justify-between ${
                               business.platformType === item.type
                                 ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
@@ -937,10 +1122,17 @@ export function PrivacyPolicyGenerator() {
                           </div>
                         ))}
                       </div>
+                      <div className="mt-4 inline-flex items-center gap-1.5">
+                        <kbd className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 text-[11px] font-mono font-semibold shadow-sm">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                          Enter
+                        </kbd>
+                      </div>
                     </div>
                   )}
 
-                  {subQuestionIndex === 1 && (
+                  {/* ── CH1 Q2: Product Name ── */}
+                  {wizardStep === 1 && subQuestionIndex === 1 && (
                     <div>
                       <TypewriterHeading text="Great choice. What is your product or website called?" isMuted={isMuted} />
                       <div className="mt-6">
@@ -949,16 +1141,28 @@ export function PrivacyPolicyGenerator() {
                           autoFocus
                           value={business.name}
                           onChange={e => setBusiness({ ...business, name: e.target.value })}
-                          onKeyDown={e => e.key === 'Enter' && business.name.trim() && handleChapter1Next()}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') { e.preventDefault(); if (business.name.trim()) { setDirection(1); handleChapter1Next(); } }
+                          }}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-3 font-medium"
                           placeholder="e.g. Acme SaaS"
                         />
-                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                          <span className="text-[11px] font-mono text-slate-500 mr-1 select-none">Quick options:</span>
+                          <LuxuryQuickOption label="Stealth / Unnamed Project" isSelected={business.name === 'My Project'} onClick={() => setBusiness({ ...business, name: 'My Project' })} />
+                        </div>
+                        <div className="inline-flex items-center gap-1.5">
+                          <kbd className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 text-[11px] font-mono font-semibold shadow-sm">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                            Enter
+                          </kbd>
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {subQuestionIndex === 2 && (
+                  {/* ── CH1 Q3: Legal Entity ── */}
+                  {wizardStep === 1 && subQuestionIndex === 2 && (
                     <div>
                       <TypewriterHeading text={business.name ? `That's a classy name! What is the legal registered entity behind ${business.name}?` : "What is the legal registered entity behind this?"} isMuted={isMuted} />
                       <div className="mt-6">
@@ -967,16 +1171,29 @@ export function PrivacyPolicyGenerator() {
                           autoFocus
                           value={business.companyName}
                           onChange={e => setBusiness({ ...business, companyName: e.target.value })}
-                          onKeyDown={e => e.key === 'Enter' && business.companyName.trim() && handleChapter1Next()}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') { e.preventDefault(); if (business.companyName.trim()) { setDirection(1); handleChapter1Next(); } }
+                          }}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-3 font-medium"
                           placeholder="e.g. Acme Studio Inc."
                         />
-                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                          <span className="text-[11px] font-mono text-slate-500 mr-1 select-none">Quick options:</span>
+                          <LuxuryQuickOption label="Not registered as a company yet" isSelected={business.companyName === `${business.name || 'Individual'} (Sole Proprietor)`} onClick={() => setBusiness({ ...business, companyName: `${business.name || 'Individual'} (Sole Proprietor)` })} />
+                          <LuxuryQuickOption label="Open Source / Side Project" isSelected={business.companyName === `${business.name || 'Project'} (Individual / Open Source)`} onClick={() => setBusiness({ ...business, companyName: `${business.name || 'Project'} (Individual / Open Source)` })} />
+                        </div>
+                        <div className="inline-flex items-center gap-1.5">
+                          <kbd className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 text-[11px] font-mono font-semibold shadow-sm">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                            Enter
+                          </kbd>
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {subQuestionIndex === 3 && (
+                  {/* ── CH1 Q4: Website URL ── */}
+                  {wizardStep === 1 && subQuestionIndex === 3 && (
                     <div>
                       <TypewriterHeading text={business.name ? `Understood. What is the official website URL for ${business.name}?` : "What is your official website URL?"} isMuted={isMuted} />
                       <div className="mt-6">
@@ -985,16 +1202,29 @@ export function PrivacyPolicyGenerator() {
                           autoFocus
                           value={business.url}
                           onChange={e => setBusiness({ ...business, url: e.target.value })}
-                          onKeyDown={e => e.key === 'Enter' && business.url.trim() && handleChapter1Next()}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') { e.preventDefault(); if (business.url.trim()) { setDirection(1); handleChapter1Next(); } }
+                          }}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-3 font-medium"
                           placeholder="https://example.com"
                         />
-                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                          <span className="text-[11px] font-mono text-slate-500 mr-1 select-none">Quick options:</span>
+                          <LuxuryQuickOption label="Domain / website not live yet" isSelected={business.url === 'https://example.com'} onClick={() => setBusiness({ ...business, url: 'https://example.com' })} />
+                          <LuxuryQuickOption label="Mobile App only (No website yet)" isSelected={business.url === 'App Store / Play Store'} onClick={() => setBusiness({ ...business, url: 'App Store / Play Store' })} />
+                        </div>
+                        <div className="inline-flex items-center gap-1.5">
+                          <kbd className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 text-[11px] font-mono font-semibold shadow-sm">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                            Enter
+                          </kbd>
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {subQuestionIndex === 4 && (
+                  {/* ── CH1 Q5: Business Country ── */}
+                  {wizardStep === 1 && subQuestionIndex === 4 && (
                     <div>
                       <TypewriterHeading text={business.companyName ? `Where is ${business.companyName} legally registered?` : "Where is your business legally registered?"} isMuted={isMuted} />
                       <div className="mt-6">
@@ -1002,254 +1232,124 @@ export function PrivacyPolicyGenerator() {
                           value={business.businessCountry}
                           onChange={val => handleCountryChange(val)}
                           options={COUNTRY_OPTIONS}
+                          onEnter={() => { setDirection(1); handleChapter1Next(); }}
                         />
+                        <div className="inline-flex items-center gap-1.5 mt-2">
+                          <kbd className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 text-[11px] font-mono font-semibold shadow-sm">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                            Enter
+                          </kbd>
+                        </div>
                       </div>
                     </div>
                   )}
-                </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                  {subQuestionIndex > 0 ? (
-                    <button
-                      type="button"
-                      onClick={handleChapter1Back}
-                      className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                    >
-                      ← Previous Question
-                    </button>
-                  ) : <div />}
-
-                  <button
-                    type="button"
-                    onClick={handleChapter1Next}
-                    disabled={
-                      (subQuestionIndex === 1 && !business.name.trim()) ||
-                      (subQuestionIndex === 2 && !business.companyName.trim()) ||
-                      (subQuestionIndex === 3 && !business.url.trim())
-                    }
-                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed interactive-press"
-                  >
-                    Continue →
-                  </button>
-                </div>
-              </div>
-            </Step>
-
-            {/* CHAPTER 2: THE AUDIENCE & TERRITORY */}
-            <Step>
-              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
-                <div>
-                  <TypewriterHeading text={business.name ? `Got it! Where do users of ${business.name} reside?` : "Where do your users reside?"} isMuted={isMuted} />
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
-                    Privacy laws apply based on visitor residence. Recommended frameworks were auto-configured for {COUNTRY_OPTIONS.find(c => c.value === business.businessCountry)?.label}.
-                  </p>
-
-                  <div className="space-y-3">
-                    {REGION_CARDS.map(region => {
-                      const isSelected = region.lawIds.every(id => selectedLaws.includes(id));
-                      return (
-                        <div
-                          key={region.id}
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedLaws(selectedLaws.filter(id => !region.lawIds.includes(id)));
-                            } else {
-                              const newLaws = Array.from(new Set([...selectedLaws, ...region.lawIds]));
-                              setSelectedLaws(newLaws);
-                            }
-                          }}
-                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
-                            isSelected
-                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
-                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                                {region.title}
-                              </h4>
-                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                                {region.badge}
-                              </span>
+                  {/* ── CH2: User Territory ── */}
+                  {wizardStep === 2 && (
+                    <div>
+                      <TypewriterHeading text={business.name ? `Got it! Where do users of ${business.name} reside?` : "Where do your users reside?"} isMuted={isMuted} />
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
+                        Privacy laws apply based on visitor residence. Recommended frameworks were auto-configured for {COUNTRY_OPTIONS.find(c => c.value === business.businessCountry)?.label}.
+                      </p>
+                      <div className="space-y-3">
+                        {REGION_CARDS.map(region => {
+                          const isSelected = region.lawIds.every(id => selectedLaws.includes(id));
+                          return (
+                            <div
+                              key={region.id}
+                              onClick={() => {
+                                if (isSelected) setSelectedLaws(selectedLaws.filter(id => !region.lawIds.includes(id)));
+                                else setSelectedLaws(Array.from(new Set([...selectedLaws, ...region.lawIds])));
+                              }}
+                              className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
+                                isSelected ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md' : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                              }`}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>{region.title}</h4>
+                                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">{region.badge}</span>
+                                </div>
+                                <p className="text-xs text-slate-400 leading-relaxed">{region.desc}</p>
+                              </div>
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                                isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                              }`}>
+                                {isSelected && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                              </div>
                             </div>
-                            <p className="text-xs text-slate-400 leading-relaxed">{region.desc}</p>
-                          </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                            isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
-                          }`}>
-                            {isSelected && (
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWizardStep(1);
-                      setSubQuestionIndex(4);
-                    }}
-                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                  >
-                    ← Previous
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWizardStep(3);
-                      setSubQuestionIndex(0);
-                    }}
-                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
-                  >
-                    Continue →
-                  </button>
-                </div>
-              </div>
-            </Step>
-
-            {/* CHAPTER 3: THE DATA FOOTPRINT */}
-            <Step>
-              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
-                <div>
-                  <TypewriterHeading text="Perfect. What personal data passes through your product?" isMuted={isMuted} />
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
-                    Only select data types your platform actively processes. Keeping options minimal builds transparency.
-                  </p>
-
-                  <div className="space-y-3">
-                    {DATA_CATEGORIES.map(cat => {
-                      const isChecked = dataCollected[cat.key as keyof DataCollectedOptions];
-                      return (
-                        <div
-                          key={cat.key}
-                          onClick={() => setDataCollected({ ...dataCollected, [cat.key]: !isChecked })}
-                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
-                            isChecked
-                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
-                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                              {cat.title}
-                            </h4>
-                            <p className="text-xs text-slate-400 leading-relaxed">{cat.desc}</p>
-                          </div>
-
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                            isChecked ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
-                          }`}>
-                            {isChecked && (
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                  <button
-                    type="button"
-                    onClick={() => setWizardStep(2)}
-                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                  >
-                    ← Previous
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setWizardStep(4)}
-                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
-                  >
-                    Continue →
-                  </button>
-                </div>
-              </div>
-            </Step>
-
-            {/* CHAPTER 4: THE TECH ENGINE */}
-            <Step>
-              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
-                <div>
-                  <TypewriterHeading text="Makes sense. Which third-party services power your tech engine?" isMuted={isMuted} />
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
-                    Select tools in your tech stack. Required third-party legal disclosures will be auto-inserted.
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {TECH_SERVICES_LIBRARY.map(service => {
-                      const isSelected = selectedServices.includes(service.id);
-                      return (
-                        <div
-                          key={service.id}
-                          onClick={() => toggleService(service.id)}
-                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex flex-col justify-between ${
-                            isSelected
-                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
-                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-bold text-xs text-stone-50">{service.name}</span>
-                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                              isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
-                            }`}>
-                              {isSelected && (
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
+                  {/* ── CH3: Data Footprint ── */}
+                  {wizardStep === 3 && (
+                    <div>
+                      <TypewriterHeading text="Perfect. What personal data passes through your product?" isMuted={isMuted} />
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">Only select data types your platform actively processes. Keeping options minimal builds transparency.</p>
+                      <div className="space-y-3">
+                        {DATA_CATEGORIES.map(cat => {
+                          const isChecked = dataCollected[cat.key as keyof DataCollectedOptions];
+                          return (
+                            <div
+                              key={cat.key}
+                              onClick={() => setDataCollected({ ...dataCollected, [cat.key]: !isChecked })}
+                              className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
+                                isChecked ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md' : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                              }`}
+                            >
+                              <div className="flex-1">
+                                <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>{cat.title}</h4>
+                                <p className="text-xs text-slate-400 leading-relaxed">{cat.desc}</p>
+                              </div>
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                                isChecked ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                              }`}>
+                                {isChecked && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                              </div>
                             </div>
-                          </div>
-                          <p className="text-[11px] text-slate-400 leading-relaxed">{service.plainSummary}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
-                  <button
-                    type="button"
-                    onClick={() => setWizardStep(3)}
-                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
-                  >
-                    ← Previous
-                  </button>
+                  {/* ── CH4: Tech Engine ── */}
+                  {wizardStep === 4 && (
+                    <div>
+                      <TypewriterHeading text="Makes sense. Which third-party services power your tech engine?" isMuted={isMuted} />
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">Select tools in your tech stack. Required third-party legal disclosures will be auto-inserted.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {TECH_SERVICES_LIBRARY.map(service => {
+                          const isSelected = selectedServices.includes(service.id);
+                          return (
+                            <div
+                              key={service.id}
+                              onClick={() => toggleService(service.id)}
+                              className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex flex-col justify-between ${
+                                isSelected ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md' : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-bold text-xs text-stone-50">{service.name}</span>
+                                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                                  isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                                }`}>
+                                  {isSelected && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                </div>
+                              </div>
+                              <p className="text-[11px] text-slate-400 leading-relaxed">{service.plainSummary}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWizardStep(5);
-                      setSubQuestionIndex(0);
-                    }}
-                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
-                  >
-                    Continue →
-                  </button>
-                </div>
-              </div>
-            </Step>
-
-            {/* CHAPTER 5: THE LEGAL SEAL */}
-            <Step>
-              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
-                <div>
-                  {subQuestionIndex === 0 && (
+                  {/* ── CH5 Q1: Contact Email ── */}
+                  {wizardStep === 5 && subQuestionIndex === 0 && (
                     <div>
                       <TypewriterHeading text={business.name ? `Almost done! Where should users send privacy inquiries for ${business.name}?` : "Where should users send privacy & deletion inquiries?"} isMuted={isMuted} />
                       <div className="mt-6">
@@ -1258,16 +1358,28 @@ export function PrivacyPolicyGenerator() {
                           autoFocus
                           value={business.contactEmail}
                           onChange={e => setBusiness({ ...business, contactEmail: e.target.value })}
-                          onKeyDown={e => e.key === 'Enter' && business.contactEmail.trim() && handleChapter5Next()}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') { e.preventDefault(); if (business.contactEmail.trim()) { setDirection(1); handleChapter5Next(); } }
+                          }}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-3 font-medium"
                           placeholder="privacy@example.com"
                         />
-                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                          <span className="text-[11px] font-mono text-slate-500 mr-1 select-none">Quick options:</span>
+                          <LuxuryQuickOption label="Don't have a privacy email yet" isSelected={business.contactEmail === 'privacy@example.com'} onClick={() => setBusiness({ ...business, contactEmail: 'privacy@example.com' })} />
+                        </div>
+                        <div className="inline-flex items-center gap-1.5">
+                          <kbd className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 text-[11px] font-mono font-semibold shadow-sm">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                            Enter
+                          </kbd>
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {subQuestionIndex === 1 && (
+                  {/* ── CH5 Q2: Data Retention ── */}
+                  {wizardStep === 5 && subQuestionIndex === 1 && (
                     <div>
                       <TypewriterHeading text="Final touch: How many months do you retain user data?" isMuted={isMuted} />
                       <div className="mt-6">
@@ -1276,7 +1388,9 @@ export function PrivacyPolicyGenerator() {
                           autoFocus
                           value={dataRetentionMonths}
                           onChange={e => setDataRetentionMonths(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && handleChapter5Next()}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') { e.preventDefault(); setDirection(1); handleChapter5Next(); }
+                          }}
                           className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
                           placeholder="24"
                         />
@@ -1284,28 +1398,37 @@ export function PrivacyPolicyGenerator() {
                       </div>
                     </div>
                   )}
+
                 </div>
 
+                {/* ── UNIFIED NAV FOOTER ── */}
                 <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
                   <button
                     type="button"
-                    onClick={handleChapter5Back}
-                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                    onClick={handleWizardBack}
+                    disabled={wizardStep === 1 && subQuestionIndex === 0}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors disabled:opacity-0 disabled:pointer-events-none"
                   >
                     ← Previous
                   </button>
 
                   <button
                     type="button"
-                    onClick={handleChapter5Next}
-                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                    onClick={() => { setDirection(1); handleCurrentStepNext(); }}
+                    disabled={
+                      (wizardStep === 1 && subQuestionIndex === 1 && !business.name.trim()) ||
+                      (wizardStep === 1 && subQuestionIndex === 2 && !business.companyName.trim()) ||
+                      (wizardStep === 1 && subQuestionIndex === 3 && !business.url.trim()) ||
+                      (wizardStep === 5 && subQuestionIndex === 0 && !business.contactEmail.trim())
+                    }
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed interactive-press"
                   >
-                    {subQuestionIndex === 1 ? 'Generate Privacy Policy →' : 'Continue →'}
+                    {wizardStep === 5 && subQuestionIndex === 1 ? 'Generate Privacy Policy →' : 'Continue →'}
                   </button>
                 </div>
               </div>
-            </Step>
-          </Stepper>
+            </motion.div>
+          </AnimatePresence>
         </div>
       )}
 
