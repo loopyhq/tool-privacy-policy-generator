@@ -100,7 +100,7 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
   );
 }
 
-// --- CUSTOM DROPDOWN COMPONENT ---
+// --- CUSTOM SEARCHABLE DROPDOWN COMPONENT ---
 interface CustomDropdownOption {
   value: string;
   label: string;
@@ -110,7 +110,7 @@ function CustomDropdown({
   value,
   onChange,
   options,
-  placeholder = 'Select option...'
+  placeholder = 'Type to search country...'
 }: {
   value: string;
   onChange: (val: string) => void;
@@ -118,66 +118,101 @@ function CustomDropdown({
   placeholder?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find(o => o.value === value);
 
   useEffect(() => {
+    if (selectedOption) {
+      setSearchTerm(selectedOption.label);
+    }
+  }, [value]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
+        if (selectedOption) {
+          setSearchTerm(selectedOption.label);
+        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [selectedOption]);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm || (selectedOption && searchTerm === selectedOption.label)) {
+      return options;
+    }
+    return options.filter(o =>
+      o.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.value.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [options, searchTerm, selectedOption]);
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-base text-stone-50 flex items-center justify-between transition-all hover:border-slate-700 focus:outline-none focus:border-slate-600 interactive-press"
-      >
-        <span className="truncate font-medium">{selectedOption ? selectedOption.label : placeholder}</span>
-        <svg
-          className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-stone-50' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+      <div className="relative flex items-center">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={e => {
+            setSearchTerm(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 pr-12 text-base text-stone-50 transition-all hover:border-slate-700 focus:outline-none focus:border-slate-600 font-medium placeholder-slate-500"
+          placeholder={placeholder}
+        />
+        <div className="absolute right-4 pointer-events-none text-slate-400">
+          <svg
+            className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180 text-stone-50' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
 
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-y-auto max-h-60 p-2 space-y-1">
-          {options.map(option => {
-            const isSelected = option.value === value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
-                  isSelected
-                    ? 'bg-slate-800 text-stone-50 font-bold'
-                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
-                }`}
-              >
-                <span>{option.label}</span>
-                {isSelected && (
-                  <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map(option => {
+              const isSelected = option.value === value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(option.value);
+                    setSearchTerm(option.label);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                    isSelected
+                      ? 'bg-slate-800 text-stone-50 font-bold'
+                      : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  {isSelected && (
+                    <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })
+          ) : (
+            <div className="px-4 py-3 text-xs text-slate-500 font-mono text-center">
+              No matching countries found
+            </div>
+          )}
         </div>
       )}
     </div>
