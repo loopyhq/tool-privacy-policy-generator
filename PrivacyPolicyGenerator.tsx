@@ -63,8 +63,48 @@ export interface PrivacyPolicyConfig {
   dpoEmail: string;
 }
 
+// --- TYPEWRITER SOUND EFFECT SYNTHESIZER (Satisfying Tactile Key Click) ---
+function playKeyClick() {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    // Soft organic pitch shift per keystroke (460Hz - 640Hz)
+    const freq = 460 + Math.random() * 180;
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(110, t + 0.022);
+
+    // Soft tactile volume envelope
+    gain.gain.setValueAtTime(0.035, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.022);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.025);
+
+    setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, 45);
+  } catch (e) {
+    // Autoplay restrictions handle silently
+  }
+}
+
 // --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif with Glowing Emerald Beam Cursor) ---
-function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number }) {
+function TypewriterHeading({ text, speed = 25 }: { text: string; speed?: number }) {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const indexRef = useRef(0);
@@ -76,8 +116,12 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
 
     const timer = setInterval(() => {
       if (indexRef.current < text.length) {
+        const nextChar = text[indexRef.current];
         setDisplayedText(text.slice(0, indexRef.current + 1));
         indexRef.current += 1;
+        if (nextChar !== ' ') {
+          playKeyClick();
+        }
       } else {
         setIsTyping(false);
         clearInterval(timer);
