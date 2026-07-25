@@ -754,18 +754,6 @@ export function PrivacyPolicyGenerator() {
       {/* STATE 2: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
       {viewState === 'wizard' && (
         <div className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-2">
-          {/* Header Return button */}
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-900">
-            <button
-              type="button"
-              onClick={() => setViewState('landing')}
-              className="text-xs font-semibold text-slate-400 hover:text-stone-50 transition-colors flex items-center gap-1.5"
-            >
-              ← Back to Overview & FAQs
-            </button>
-            <span className="text-[11px] font-mono text-slate-500">Step {wizardStep} of 5</span>
-          </div>
-
           <Stepper
             hideIndicators={true}
             hideFooter={true}
