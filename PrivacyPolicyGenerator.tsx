@@ -267,7 +267,7 @@ const COUNTRY_OPTIONS: CustomDropdownOption[] = [
 ];
 
 export function PrivacyPolicyGenerator() {
-  const [activeTab, setActiveTab] = useState<'wizard' | 'preview' | 'cookie-banner' | 'auditor'>('wizard');
+  const [activeTab, setActiveTab] = useState<'wizard' | 'preview'>('wizard');
   const [wizardStep, setWizardStep] = useState<number>(1);
   const [subQuestionIndex, setSubQuestionIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'legal' | 'plain'>('legal');
@@ -276,10 +276,6 @@ export function PrivacyPolicyGenerator() {
 
   // Focus container ref for scroll locking viewport focus
   const questionBoxRef = useRef<HTMLDivElement>(null);
-
-  // Cookie Banner options
-  const [bannerTheme, setBannerTheme] = useState<'dark' | 'light' | 'navy' | 'emerald' | 'monochrome'>('dark');
-  const [bannerPos, setBannerPos] = useState<'bottom-card' | 'bottom-bar' | 'bottom-left' | 'bottom-right'>('bottom-card');
 
   // Business state
   const [business, setBusiness] = useState<BusinessDetails>({
@@ -325,13 +321,6 @@ export function PrivacyPolicyGenerator() {
   const [dataRetentionMonths, setDataRetentionMonths] = useState<string>('24');
   const [dpoEmail, setDpoEmail] = useState<string>('privacy@example.com');
   const [customPolicyText, setCustomPolicyText] = useState<string>('');
-
-  // Auditor state
-  const [auditInputText, setAuditInputText] = useState<string>('');
-  const [auditResults, setAuditResults] = useState<{ score: number; missingClauses: string[]; foundClauses: string[] } | null>(null);
-
-  // File input ref for JSON restore
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setBusiness(prev => ({
@@ -563,157 +552,6 @@ export function PrivacyPolicyGenerator() {
     return `<article class="privacy-policy-document text-sm leading-relaxed text-slate-300 font-sans">\n${html}\n</article>`;
   }, [generatedPolicy, isEditable, customPolicyText]);
 
-  const generatedCookieSnippet = useMemo(() => {
-    const cookieNames = selectedServices
-      .flatMap(sId => TECH_SERVICES_LIBRARY.find(s => s.id === sId)?.cookiesUsed || [])
-      .filter(Boolean);
-
-    const themeColors = {
-      dark: { bg: '#0f172a', border: '#334155', text: '#fafaf9', btnBg: '#fafaf9', btnText: '#020617', btnSecBg: 'transparent', btnSecBorder: '#475569' },
-      light: { bg: '#ffffff', border: '#cbd5e1', text: '#0f172a', btnBg: '#0f172a', btnText: '#ffffff', btnSecBg: 'transparent', btnSecBorder: '#94a3b8' },
-      navy: { bg: '#0a192f', border: '#1e3a8a', text: '#f8fafc', btnBg: '#2563eb', btnText: '#ffffff', btnSecBg: 'transparent', btnSecBorder: '#3b82f6' },
-      emerald: { bg: '#064e3b', border: '#059669', text: '#ecfdf5', btnBg: '#10b981', btnText: '#022c22', btnSecBg: 'transparent', btnSecBorder: '#34d399' },
-      monochrome: { bg: '#000000', border: '#27272a', text: '#ffffff', btnBg: '#ffffff', btnText: '#000000', btnSecBg: 'transparent', btnSecBorder: '#52525b' }
-    }[bannerTheme];
-
-    const posStyles = {
-      'bottom-card': 'bottom:20px; left:20px; right:20px; max-width:480px; margin:0 auto; border-radius:16px;',
-      'bottom-bar': 'bottom:0; left:0; right:0; max-width:100%; border-radius:0;',
-      'bottom-left': 'bottom:20px; left:20px; max-width:400px; border-radius:16px;',
-      'bottom-right': 'bottom:20px; right:20px; max-width:400px; border-radius:16px;'
-    }[bannerPos];
-
-    return `<!-- Loopy HQ Stateless Cookie Banner Snippet -->
-<div id="loopy-cookie-banner" style="display:none; position:fixed; ${posStyles} background:${themeColors.bg}; border:1px solid ${themeColors.border}; color:${themeColors.text}; padding:20px; font-family:sans-serif; z-index:999999; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
-  <p style="margin:0 0 12px 0; font-size:13px; line-height:1.5; opacity:0.9;">
-    We use essential cookies and services (${cookieNames.slice(0, 4).join(', ') || 'analytics'}) to enhance performance and user experience. View our <a href="${business.url || 'https://example.com'}/privacy" style="color:${themeColors.text}; text-decoration:underline;">Privacy Policy</a>.
-  </p>
-  <div style="display:flex; gap:10px; justify-content:flex-end;">
-    <button onclick="rejectLoopyCookies()" style="background:${themeColors.btnSecBg}; border:1px solid ${themeColors.btnSecBorder}; color:${themeColors.text}; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold;">Decline</button>
-    <button onclick="acceptLoopyCookies()" style="background:${themeColors.btnBg}; border:none; color:${themeColors.btnText}; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold;">Accept</button>
-  </div>
-</div>
-
-<script>
-(function() {
-  if (!localStorage.getItem('loopy_cookie_consent')) {
-    document.getElementById('loopy-cookie-banner').style.display = 'block';
-  }
-})();
-function acceptLoopyCookies() {
-  localStorage.setItem('loopy_cookie_consent', 'accepted');
-  document.getElementById('loopy-cookie-banner').style.display = 'none';
-}
-function rejectLoopyCookies() {
-  localStorage.setItem('loopy_cookie_consent', 'declined');
-  document.getElementById('loopy-cookie-banner').style.display = 'none';
-}
-</script>`;
-  }, [selectedServices, business.url, bannerTheme, bannerPos]);
-
-  const runPolicyAudit = () => {
-    if (!auditInputText.trim()) return;
-
-    const lowerText = auditInputText.toLowerCase();
-    const found: string[] = [];
-    const missing: string[] = [];
-
-    if (lowerText.includes('collect') || lowerText.includes('information')) found.push('Data Collection Overview');
-    else missing.push('Missing: Data Collection Section');
-
-    if (lowerText.includes('gdpr') || lowerText.includes('rights') || lowerText.includes('access') || lowerText.includes('erasure')) found.push('User Legal Rights (GDPR/CCPA)');
-    else missing.push('Missing: GDPR / CCPA User Rights Clause');
-
-    if (lowerText.includes('cookie') || lowerText.includes('tracking')) found.push('Cookies & Tracking Disclosure');
-    else missing.push('Missing: Cookie & Tracking Clause');
-
-    if (lowerText.includes('retention') || lowerText.includes('store') || lowerText.includes('months')) found.push('Data Retention Period');
-    else missing.push('Missing: Data Retention Disclosure');
-
-    if (lowerText.includes('contact') || lowerText.includes('@') || lowerText.includes('email')) found.push('Contact Information & DPO Email');
-    else missing.push('Missing: Privacy Contact / DPO Information');
-
-    selectedServices.forEach(sId => {
-      const service = TECH_SERVICES_LIBRARY.find(s => s.id === sId);
-      if (service) {
-        if (lowerText.includes(service.name.toLowerCase()) || lowerText.includes(sId)) {
-          found.push(`Integration: ${service.name}`);
-        } else {
-          missing.push(`Missing Integration Disclosure: ${service.name}`);
-        }
-      }
-    });
-
-    const total = found.length + missing.length;
-    const score = total > 0 ? Math.round((found.length / total) * 100) : 0;
-
-    setAuditResults({ score, missingClauses: missing, foundClauses: found });
-  };
-
-  const handleCopyMarkdown = () => {
-    const textToCopy = isEditable && customPolicyText ? customPolicyText : generatedPolicy;
-    copyToClipboard(textToCopy, 'Copied Markdown to clipboard!');
-  };
-
-  const handleCopyHtml = () => {
-    copyToClipboard(generatedHtml, 'Copied HTML to clipboard!');
-  };
-
-  const handleDownloadTxt = () => {
-    const text = isEditable && customPolicyText ? customPolicyText : generatedPolicy;
-    const element = document.createElement('a');
-    const file = new Blob([text], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = `privacy-policy-${(business.name || 'company').toLowerCase().replace(/[^a-z0-9]/g, '-')}.md`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    triggerToast('Downloaded Privacy Policy (.md)');
-  };
-
-  const handleExportJson = () => {
-    const config: PrivacyPolicyConfig = {
-      version: '1.0',
-      business,
-      selectedLaws,
-      dataCollected,
-      dataPurposes,
-      selectedServices,
-      dataRetentionMonths,
-      dpoEmail
-    };
-    const element = document.createElement('a');
-    const file = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-    element.href = URL.createObjectURL(file);
-    element.download = `privacy-policy-config-${(business.name || 'company').toLowerCase().replace(/[^a-z0-9]/g, '-')}.json`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    triggerToast('Exported Config JSON (Save State)');
-  };
-
-  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileReader = new FileReader();
-    if (e.target.files && e.target.files[0]) {
-      fileReader.readAsText(e.target.files[0], 'UTF-8');
-      fileReader.onload = (event) => {
-        try {
-          const parsed = JSON.parse(event.target?.result as string) as PrivacyPolicyConfig;
-          if (parsed.business) setBusiness(parsed.business);
-          if (parsed.selectedLaws) setSelectedLaws(parsed.selectedLaws);
-          if (parsed.dataCollected) setDataCollected(parsed.dataCollected);
-          if (parsed.dataPurposes) setDataPurposes(parsed.dataPurposes);
-          if (parsed.selectedServices) setSelectedServices(parsed.selectedServices);
-          if (parsed.dataRetentionMonths) setDataRetentionMonths(parsed.dataRetentionMonths);
-          if (parsed.dpoEmail) setDpoEmail(parsed.dpoEmail);
-          triggerToast('Imported Config JSON & Restored Answers!');
-        } catch (err) {
-          alert('Invalid JSON configuration file.');
-        }
-      };
-    }
-  };
-
   // Region Cards for Chapter 2
   const REGION_CARDS = [
     {
@@ -802,6 +640,27 @@ function rejectLoopyCookies() {
     }
   };
 
+  const handleCopyMarkdown = () => {
+    const textToCopy = isEditable && customPolicyText ? customPolicyText : generatedPolicy;
+    copyToClipboard(textToCopy, 'Copied Markdown to clipboard!');
+  };
+
+  const handleCopyHtml = () => {
+    copyToClipboard(generatedHtml, 'Copied HTML to clipboard!');
+  };
+
+  const handleDownloadTxt = () => {
+    const text = isEditable && customPolicyText ? customPolicyText : generatedPolicy;
+    const element = document.createElement('a');
+    const file = new Blob([text], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = `privacy-policy-${(business.name || 'company').toLowerCase().replace(/[^a-z0-9]/g, '-')}.md`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    triggerToast('Downloaded Privacy Policy (.md)');
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto font-sans" ref={questionBoxRef}>
 
@@ -811,68 +670,6 @@ function rejectLoopyCookies() {
           {copyFeedback}
         </div>
       )}
-
-      {/* Navigation Header Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-slate-800/80">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setActiveTab('wizard')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'wizard' ? 'bg-stone-50 text-slate-950 shadow-md' : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
-            }`}
-          >
-            1. Conversational Generator
-          </button>
-
-          <button
-            onClick={() => setActiveTab('preview')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'preview' ? 'bg-stone-50 text-slate-950 shadow-md' : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
-            }`}
-          >
-            2. Policy Output & Preview
-          </button>
-
-          <button
-            onClick={() => setActiveTab('cookie-banner')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'cookie-banner' ? 'bg-stone-50 text-slate-950 shadow-md' : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
-            }`}
-          >
-            3. Cookie Banner
-          </button>
-
-          <button
-            onClick={() => setActiveTab('auditor')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'auditor' ? 'bg-stone-50 text-slate-950 shadow-md' : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
-            }`}
-          >
-            4. Policy Auditor
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportJson}
-            title="Save configuration state locally"
-            className="px-3.5 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-stone-50 border border-slate-800 rounded-xl transition-all interactive-press flex items-center gap-1.5"
-          >
-            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Save State
-          </button>
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            title="Load saved state from JSON"
-            className="px-3.5 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-stone-50 border border-slate-800 rounded-xl transition-all interactive-press flex items-center gap-1.5"
-          >
-            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            Load State
-          </button>
-          <input ref={fileInputRef} type="file" accept=".json" onChange={handleImportJson} className="hidden" />
-        </div>
-      </div>
 
       {/* TAB 1: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
       {activeTab === 'wizard' && (
@@ -1301,38 +1098,51 @@ function rejectLoopyCookies() {
 
       {/* TAB 2: LIVE POLICY PREVIEW & OUTPUT */}
       {activeTab === 'preview' && (
-        <div>
+        <div className="py-6">
           <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
-            <div className="flex items-center gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setViewMode('legal')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  viewMode === 'legal' ? 'bg-slate-800 text-stone-50' : 'text-slate-400 hover:text-slate-200'
-                }`}
+                onClick={() => {
+                  setActiveTab('wizard');
+                  setWizardStep(1);
+                  setSubQuestionIndex(0);
+                }}
+                className="px-3 py-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl transition-all flex items-center gap-1.5"
               >
-                Full Legal Text
+                ← Edit Answers
               </button>
-              <button
-                onClick={() => setViewMode('plain')}
-                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  viewMode === 'plain' ? 'bg-slate-800 text-stone-50' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                "In Short" Plain English
-              </button>
+
+              <div className="flex items-center gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl">
+                <button
+                  onClick={() => setViewMode('legal')}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                    viewMode === 'legal' ? 'bg-slate-800 text-stone-50' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Full Legal Text
+                </button>
+                <button
+                  onClick={() => setViewMode('plain')}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                    viewMode === 'plain' ? 'bg-slate-800 text-stone-50' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  "In Short" Plain English
+                </button>
+              </div>
             </div>
 
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isEditable}
-                onChange={e => setIsEditable(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-stone-50"
-              />
-              Enable Inline Editing
-            </label>
-
             <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-400 cursor-pointer mr-2">
+                <input
+                  type="checkbox"
+                  checked={isEditable}
+                  onChange={e => setIsEditable(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-stone-50"
+                />
+                Inline Editing
+              </label>
+
               <button
                 onClick={handleCopyMarkdown}
                 className="px-3.5 py-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-stone-50 border border-slate-800 rounded-xl transition-all interactive-press"
@@ -1373,215 +1183,6 @@ function rejectLoopyCookies() {
               <div dangerouslySetInnerHTML={{ __html: generatedHtml }} />
             )}
           </div>
-        </div>
-      )}
-
-      {/* TAB 3: COOKIE BANNER SNIPPET */}
-      {activeTab === 'cookie-banner' && (
-        <div>
-          {/* Header with Top-Right Action */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
-            <div>
-              <h3 className="text-base font-bold text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Client-Side Cookie Consent Banner Generator
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Zero server dependencies. Embed this snippet on your website to store visitor consent choices directly in their browser's <code className="text-slate-300 font-mono">localStorage</code>.
-              </p>
-            </div>
-
-            <button
-              onClick={() => copyToClipboard(generatedCookieSnippet, 'Copied Cookie Banner Snippet!')}
-              className="interactive-press px-4 py-2 text-xs font-bold bg-stone-50 text-slate-950 rounded-xl hover:bg-stone-200 transition-all flex items-center gap-2 shrink-0 shadow-lg"
-            >
-              <svg className="w-4 h-4 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v9.25c0 .621-.504 1.125-1.125 1.125Z" />
-              </svg>
-              Copy Code
-            </button>
-          </div>
-
-          {/* Customization Options Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            {/* Professional Color Theme Selector */}
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-                Professional Color Theme
-              </label>
-              <div className="grid grid-cols-5 gap-1.5">
-                {(['dark', 'light', 'navy', 'emerald', 'monochrome'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setBannerTheme(t)}
-                    className={`py-2 px-1 text-[11px] font-bold rounded-xl border capitalize transition-all interactive-press text-center ${
-                      bannerTheme === t
-                        ? 'bg-slate-800 text-stone-50 border-stone-50 shadow-md'
-                        : 'bg-slate-900/60 text-slate-400 border-slate-700/60 hover:text-slate-200'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Display Position Selector */}
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-                Display Position
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {(['bottom-card', 'bottom-bar', 'bottom-left', 'bottom-right'] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setBannerPos(p)}
-                    className={`py-2 px-3 text-xs font-bold rounded-xl border capitalize transition-all interactive-press text-center ${
-                      bannerPos === p
-                        ? 'bg-slate-800 text-stone-50 border-stone-50 shadow-md'
-                        : 'bg-slate-900/60 text-slate-400 border-slate-700/60 hover:text-slate-200'
-                    }`}
-                  >
-                    {p.replace('-', ' ')}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Live Interactive Viewport Mockup Preview */}
-          <div className="mb-6 p-4 bg-slate-950 border border-slate-800 rounded-2xl relative h-64 overflow-hidden flex flex-col justify-between select-none">
-            {/* Fake Background Website Elements */}
-            <div className="opacity-25 pointer-events-none space-y-3 p-2">
-              <div className="h-3 w-1/4 bg-slate-700 rounded"></div>
-              <div className="h-2 w-3/4 bg-slate-800 rounded"></div>
-              <div className="h-2 w-1/2 bg-slate-800 rounded"></div>
-              <div className="grid grid-cols-3 gap-2 pt-2">
-                <div className="h-12 bg-slate-900 rounded-lg border border-slate-800"></div>
-                <div className="h-12 bg-slate-900 rounded-lg border border-slate-800"></div>
-                <div className="h-12 bg-slate-900 rounded-lg border border-slate-800"></div>
-              </div>
-            </div>
-
-            <div className="absolute top-3 right-3 text-[10px] font-mono text-emerald-400 font-bold bg-slate-900 px-2 py-1 rounded border border-slate-800">
-              Live Viewport Motion Preview
-            </div>
-
-            {/* Rendered Mock Banner positioned dynamically */}
-            <div
-              className={`transition-all duration-300 shadow-2xl p-4 text-xs z-10 ${
-                bannerPos === 'bottom-card' ? 'absolute bottom-3 left-1/2 -translate-x-1/2 w-11/12 max-w-md rounded-2xl border' :
-                bannerPos === 'bottom-bar' ? 'absolute bottom-0 left-0 right-0 w-full rounded-none border-t' :
-                bannerPos === 'bottom-left' ? 'absolute bottom-3 left-3 w-10/12 max-w-xs rounded-2xl border' :
-                'absolute bottom-3 right-3 w-10/12 max-w-xs rounded-2xl border'
-              } ${
-                bannerTheme === 'dark' ? 'bg-slate-900 border-slate-700 text-stone-50' :
-                bannerTheme === 'light' ? 'bg-white border-slate-200 text-slate-900' :
-                bannerTheme === 'navy' ? 'bg-slate-950 border-blue-800 text-slate-100' :
-                bannerTheme === 'emerald' ? 'bg-emerald-950 border-emerald-700 text-emerald-100' :
-                'bg-black border-zinc-800 text-white'
-              }`}
-            >
-              <p className="mb-3 leading-relaxed text-[11px] opacity-90">
-                We use essential cookies and services ({selectedServices.slice(0, 2).join(', ') || 'analytics'}) to improve performance. View our <span className="underline font-bold">Privacy Policy</span>.
-              </p>
-              <div className="flex gap-2 justify-end">
-                <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
-                  bannerTheme === 'light' ? 'border-slate-300 text-slate-700' : 'border-slate-700 text-slate-300'
-                }`}>
-                  Decline
-                </span>
-                <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${
-                  bannerTheme === 'light' ? 'bg-slate-900 text-white' :
-                  bannerTheme === 'emerald' ? 'bg-emerald-400 text-emerald-950' :
-                  bannerTheme === 'navy' ? 'bg-blue-600 text-white' :
-                  'bg-stone-50 text-slate-950'
-                }`}>
-                  Accept
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Clean Code Output Container with Top-Right Copy Button */}
-          <div className="relative rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/60 border-b border-slate-800 text-xs text-slate-400 font-mono">
-              <span>HTML / JavaScript Embed Code</span>
-              <button
-                onClick={() => copyToClipboard(generatedCookieSnippet, 'Copied Cookie Banner HTML/JS!')}
-                className="interactive-press text-[11px] font-bold text-stone-50 hover:text-white flex items-center gap-1.5"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v9.25c0 .621-.504 1.125-1.125 1.125Z" />
-                </svg>
-                Copy Snippet
-              </button>
-            </div>
-
-            <pre className="p-5 text-xs font-mono text-emerald-400 leading-relaxed max-h-[380px] overflow-x-auto selection:bg-slate-800">
-              {generatedCookieSnippet}
-            </pre>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: POLICY AUDITOR */}
-      {activeTab === 'auditor' && (
-        <div>
-          <h3 className="text-sm font-bold text-stone-50 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            In-Browser Policy Auditor
-          </h3>
-          <p className="text-xs text-slate-400 mb-4">
-            Paste an existing Privacy Policy text below to scan it for missing clauses against your declared tech stack and target privacy laws. Runs 100% locally.
-          </p>
-
-          <textarea
-            value={auditInputText}
-            onChange={e => setAuditInputText(e.target.value)}
-            placeholder="Paste existing policy text here..."
-            rows={8}
-            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-slate-300 focus:outline-none focus:border-slate-600 mb-4"
-          />
-
-          <button
-            onClick={runPolicyAudit}
-            className="px-5 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
-          >
-            Run In-Browser Audit
-          </button>
-
-          {auditResults && (
-            <div className="mt-6 p-6 bg-slate-950 border border-slate-800 rounded-2xl">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center font-bold text-xl text-stone-50">
-                  {auditResults.score}%
-                </div>
-                <div>
-                  <h4 className="font-bold text-stone-50 text-sm">Policy Compliance Score</h4>
-                  <p className="text-xs text-slate-400">Based on {selectedServices.length} tech integrations and {selectedLaws.length} selected laws.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-300">
-                  <h5 className="font-bold mb-2 uppercase tracking-wider text-[10px]">Detected / Found Clauses ({auditResults.foundClauses.length})</h5>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {auditResults.foundClauses.map((c, i) => <li key={i}>{c}</li>)}
-                  </ul>
-                </div>
-
-                <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300">
-                  <h5 className="font-bold mb-2 uppercase tracking-wider text-[10px]">Missing / Recommended Clauses ({auditResults.missingClauses.length})</h5>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {auditResults.missingClauses.length > 0 ? (
-                      auditResults.missingClauses.map((c, i) => <li key={i}>{c}</li>)
-                    ) : (
-                      <li>No missing clauses detected! Excellent.</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
