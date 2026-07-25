@@ -84,63 +84,65 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
-function playKeyClick() {
+// --- TYPEWRITER SOUND EFFECT SYNTHESIZER (Warm Deep Thub Rhythm) ---
+let sharedAudioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    if (!sharedAudioCtx) {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        sharedAudioCtx = new AudioContextClass();
+      }
+    }
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+  } catch (e) {
+    return null;
+  }
+}
+
+function playThubSound() {
   const ctx = getAudioContext();
   if (!ctx) return;
 
   try {
     const t = ctx.currentTime;
 
-    // 1. Warm mechanical thock oscillator
+    // Deep warm thub oscillator (130Hz - 170Hz)
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
 
-    const baseFreq = 380 + Math.random() * 160; // 380Hz - 540Hz warm pitch shift
-    osc.type = 'triangle';
+    const baseFreq = 130 + Math.random() * 40;
+    osc.type = 'sine';
     osc.frequency.setValueAtTime(baseFreq, t);
-    osc.frequency.exponentialRampToValueAtTime(100, t + 0.035);
+    osc.frequency.exponentialRampToValueAtTime(50, t + 0.045);
 
-    gain.gain.setValueAtTime(0.28, t); // Rich, audible volume
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+    // Warm lowpass filter to remove treble clicks
+    filter.type = 'lowpass';
+    filter.frequency.value = 300;
 
-    osc.connect(gain);
+    // Smooth soft volume envelope
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(t);
-    osc.stop(t + 0.04);
-
-    // 2. High-frequency crisp key stroke burst
-    const bufferSize = Math.floor(ctx.sampleRate * 0.018);
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1;
-    }
-
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuffer;
-
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 1400;
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.18, t);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.018);
-
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-
-    noise.start(t);
-    noise.stop(t + 0.022);
+    osc.stop(t + 0.05);
   } catch (e) {
     // Autoplay restrictions handle silently
   }
 }
 
 // --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif with Glowing Emerald Beam Cursor) ---
-function TypewriterHeading({ text, speed = 25 }: { text: string; speed?: number }) {
+function TypewriterHeading({ text, speed = 38 }: { text: string; speed?: number }) {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const indexRef = useRef(0);
@@ -155,8 +157,9 @@ function TypewriterHeading({ text, speed = 25 }: { text: string; speed?: number 
         const nextChar = text[indexRef.current];
         setDisplayedText(text.slice(0, indexRef.current + 1));
         indexRef.current += 1;
-        if (nextChar !== ' ') {
-          playKeyClick();
+        // Play thub sound every 3rd character for a steady, relaxed rhythm
+        if (indexRef.current % 3 === 0 && nextChar !== ' ') {
+          playThubSound();
         }
       } else {
         setIsTyping(false);
