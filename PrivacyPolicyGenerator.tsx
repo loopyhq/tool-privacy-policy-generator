@@ -62,6 +62,38 @@ export interface PrivacyPolicyConfig {
   dpoEmail: string;
 }
 
+// --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif) ---
+function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number }) {
+  const [displayedText, setDisplayedText] = useState('');
+  const indexRef = useRef(0);
+
+  useEffect(() => {
+    setDisplayedText('');
+    indexRef.current = 0;
+
+    const timer = setInterval(() => {
+      if (indexRef.current < text.length) {
+        setDisplayedText(text.slice(0, indexRef.current + 1));
+        indexRef.current += 1;
+      } else {
+        clearInterval(timer);
+      }
+    }, speed);
+
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return (
+    <h3
+      className="text-2xl sm:text-4xl text-stone-100 mb-4 tracking-tight leading-tight select-none"
+      style={{ fontFamily: "'Newsreader', 'Georgia', 'Cambria', serif", fontStyle: 'italic', fontWeight: 400 }}
+    >
+      {displayedText}
+      <span className="animate-pulse text-emerald-400 font-sans not-italic ml-1">|</span>
+    </h3>
+  );
+}
+
 // --- CUSTOM DROPDOWN COMPONENT ---
 interface CustomDropdownOption {
   value: string;
@@ -99,7 +131,7 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-stone-50 flex items-center justify-between transition-all hover:border-slate-700 focus:outline-none focus:border-slate-600 interactive-press"
+        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-sm text-stone-50 flex items-center justify-between transition-all hover:border-slate-700 focus:outline-none focus:border-slate-600 interactive-press"
       >
         <span className="truncate font-medium">{selectedOption ? selectedOption.label : placeholder}</span>
         <svg
@@ -146,7 +178,7 @@ function CustomDropdown({
   );
 }
 
-// --- CURATED TECH SERVICES LIBRARY (Chunked & Hick's Law Enforced) ---
+// --- CURATED TECH SERVICES LIBRARY ---
 const TECH_SERVICES_LIBRARY: TechService[] = [
   {
     id: 'stripe',
@@ -168,7 +200,7 @@ const TECH_SERVICES_LIBRARY: TechService[] = [
   },
   {
     id: 'posthog',
-    name: 'PostHog',
+    name: 'PostHog Telemetry',
     category: 'analytics',
     privacyUrl: 'https://posthog.com/privacy',
     cookiesUsed: ['ph_*'],
@@ -237,6 +269,7 @@ const COUNTRY_OPTIONS: CustomDropdownOption[] = [
 export function PrivacyPolicyGenerator() {
   const [activeTab, setActiveTab] = useState<'wizard' | 'preview' | 'cookie-banner' | 'auditor'>('wizard');
   const [wizardStep, setWizardStep] = useState<number>(1);
+  const [subQuestionIndex, setSubQuestionIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'legal' | 'plain'>('legal');
   const [isEditable, setIsEditable] = useState<boolean>(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -248,12 +281,12 @@ export function PrivacyPolicyGenerator() {
   // Business state
   const [business, setBusiness] = useState<BusinessDetails>({
     platformType: 'website',
-    name: 'My Digital App',
-    url: 'https://example.com',
-    appName: 'My App',
-    companyName: 'Acme Studio Inc.',
+    name: '',
+    url: '',
+    appName: '',
+    companyName: '',
     companyAddress: '123 Tech Avenue, Suite 100, San Francisco, CA 94105, USA',
-    contactEmail: 'privacy@example.com',
+    contactEmail: '',
     effectiveDate: '2026-07-25',
     businessCountry: 'US',
     businessState: 'California'
@@ -439,7 +472,7 @@ export function PrivacyPolicyGenerator() {
         md += `- **Right to Erasure ("Right to be Forgotten"):** Request deletion of your personal records.\n`;
         md += `- **Right to Restrict & Object:** Object to direct marketing or processing based on legitimate interests.\n`;
         md += `- **Right to Data Portability:** Receive your personal data in a structured, machine-readable format.\n`;
-        md += `To exercise your GDPR rights, contact our Data Protection Officer at: **${dpoEmail}** or **${business.contactEmail}**.\n\n`;
+        md += `To exercise your GDPR rights, contact our Data Protection Officer at: **${dpoEmail}** or **${business.contactEmail || 'privacy@example.com'}**.\n\n`;
       }
 
       if (selectedLaws.includes('ccpa') || selectedLaws.includes('us_states')) {
@@ -448,17 +481,17 @@ export function PrivacyPolicyGenerator() {
         md += `- **Right to Know & Access:** Request disclosure of categories and specific pieces of personal information collected.\n`;
         md += `- **Right to Opt-Out:** Request that your personal information not be sold or shared for cross-context behavioral advertising.\n`;
         md += `- **Right to Non-Discrimination:** We will not discriminate against you for exercising your legal privacy rights.\n`;
-        md += `To submit a California CCPA request or opt-out, email **${business.contactEmail}** with the subject line "CCPA Data Request".\n\n`;
+        md += `To submit a California CCPA request or opt-out, email **${business.contactEmail || 'privacy@example.com'}** with the subject line "CCPA Data Request".\n\n`;
       }
 
       if (selectedLaws.includes('pipeda')) {
         md += `### Canadian Privacy Rights (PIPEDA)\n`;
-        md += `Canadian residents may challenge our compliance with PIPEDA principles by filing an inquiry with our designated Privacy Officer at **${business.contactEmail}**.\n\n`;
+        md += `Canadian residents may challenge our compliance with PIPEDA principles by filing an inquiry with our designated Privacy Officer at **${business.contactEmail || 'privacy@example.com'}**.\n\n`;
       }
 
       if (selectedLaws.includes('dpdp_india')) {
         md += `### India Digital Personal Data Protection Act (DPDP Act 2023)\n`;
-        md += `Indian residents possess the right to seek summary of personal data processed, request correction and erasure, and register grievances with our Data Fiduciary at **${business.contactEmail}**.\n\n`;
+        md += `Indian residents possess the right to seek summary of personal data processed, request correction and erasure, and register grievances with our Data Fiduciary at **${business.contactEmail || 'privacy@example.com'}**.\n\n`;
       }
 
       md += `## 7. Data Retention & Security Measures\n`;
@@ -468,7 +501,7 @@ export function PrivacyPolicyGenerator() {
       md += `If you have questions, feedback, or data deletion requests regarding this policy, please reach out:\n\n`;
       md += `- **Entity:** ${entityStr}\n`;
       md += `- **Address:** ${business.companyAddress}\n`;
-      md += `- **Contact Email:** [${business.contactEmail}](mailto:${business.contactEmail})\n`;
+      md += `- **Contact Email:** [${business.contactEmail || 'privacy@example.com'}](mailto:${business.contactEmail || 'privacy@example.com'})\n`;
 
     } else {
       md += `# Privacy Policy — In Short\n\n`;
@@ -497,10 +530,10 @@ export function PrivacyPolicyGenerator() {
       md += `\n`;
 
       md += `### 4. You Are in Control\n`;
-      md += `You own your personal data. You can ask us to see, update, or completely delete your information anytime by emailing **${business.contactEmail}**.\n\n`;
+      md += `You own your personal data. You can ask us to see, update, or completely delete your information anytime by emailing **${business.contactEmail || 'privacy@example.com'}**.\n\n`;
 
       md += `### 5. Questions?\n`;
-      md += `Email us at **${business.contactEmail}** and we will respond promptly.\n`;
+      md += `Email us at **${business.contactEmail || 'privacy@example.com'}** and we will respond promptly.\n`;
     }
 
     return md;
@@ -543,7 +576,7 @@ export function PrivacyPolicyGenerator() {
     return `<!-- Loopy HQ Stateless Cookie Banner Snippet -->
 <div id="loopy-cookie-banner" style="display:none; position:fixed; ${posStyles} background:${themeColors.bg}; border:1px solid ${themeColors.border}; color:${themeColors.text}; padding:20px; font-family:sans-serif; z-index:999999; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
   <p style="margin:0 0 12px 0; font-size:13px; line-height:1.5; opacity:0.9;">
-    We use essential cookies and services (${cookieNames.slice(0, 4).join(', ') || 'analytics'}) to enhance performance and user experience. View our <a href="${business.url}/privacy" style="color:${themeColors.text}; text-decoration:underline;">Privacy Policy</a>.
+    We use essential cookies and services (${cookieNames.slice(0, 4).join(', ') || 'analytics'}) to enhance performance and user experience. View our <a href="${business.url || 'https://example.com'}/privacy" style="color:${themeColors.text}; text-decoration:underline;">Privacy Policy</a>.
   </p>
   <div style="display:flex; gap:10px; justify-content:flex-end;">
     <button onclick="rejectLoopyCookies()" style="background:${themeColors.btnSecBg}; border:1px solid ${themeColors.btnSecBorder}; color:${themeColors.text}; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold;">Decline</button>
@@ -621,7 +654,7 @@ function rejectLoopyCookies() {
     const element = document.createElement('a');
     const file = new Blob([text], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `privacy-policy-${business.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}.md`;
+    element.download = `privacy-policy-${(business.name || 'company').toLowerCase().replace(/[^a-z0-9]/g, '-')}.md`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -642,7 +675,7 @@ function rejectLoopyCookies() {
     const element = document.createElement('a');
     const file = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     element.href = URL.createObjectURL(file);
-    element.download = `privacy-policy-config-${business.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}.json`;
+    element.download = `privacy-policy-config-${(business.name || 'company').toLowerCase().replace(/[^a-z0-9]/g, '-')}.json`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -671,7 +704,7 @@ function rejectLoopyCookies() {
     }
   };
 
-  // Chunked Region Cards for Chapter 2
+  // Region Cards for Chapter 2
   const REGION_CARDS = [
     {
       id: 'eu_uk',
@@ -703,7 +736,7 @@ function rejectLoopyCookies() {
     }
   ];
 
-  // Chunked Data Categories for Chapter 3 (Miller's Law: 4 simple choices)
+  // Data Categories for Chapter 3
   const DATA_CATEGORIES = [
     {
       key: 'personalInfo',
@@ -727,8 +760,40 @@ function rejectLoopyCookies() {
     }
   ];
 
+  // Micro-question step navigation handlers
+  const handleChapter1Next = () => {
+    if (subQuestionIndex < 4) {
+      setSubQuestionIndex(subQuestionIndex + 1);
+    } else {
+      setWizardStep(2);
+      setSubQuestionIndex(0);
+    }
+  };
+
+  const handleChapter1Back = () => {
+    if (subQuestionIndex > 0) {
+      setSubQuestionIndex(subQuestionIndex - 1);
+    }
+  };
+
+  const handleChapter5Next = () => {
+    if (subQuestionIndex < 1) {
+      setSubQuestionIndex(subQuestionIndex + 1);
+    } else {
+      setActiveTab('preview');
+    }
+  };
+
+  const handleChapter5Back = () => {
+    if (subQuestionIndex > 0) {
+      setSubQuestionIndex(subQuestionIndex - 1);
+    } else {
+      setWizardStep(4);
+    }
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto font-sans">
+    <div className="w-full max-w-3xl mx-auto font-sans">
 
       {copyFeedback && (
         <div className="fixed top-20 right-5 z-50 px-4 py-2.5 bg-slate-900 border border-slate-700 text-stone-50 text-xs font-bold rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
@@ -737,7 +802,7 @@ function rejectLoopyCookies() {
         </div>
       )}
 
-      {/* Seamless Navigation Bar */}
+      {/* Navigation Header Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-slate-800/80">
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -746,7 +811,7 @@ function rejectLoopyCookies() {
               activeTab === 'wizard' ? 'bg-stone-50 text-slate-950 shadow-md' : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
             }`}
           >
-            1. Interactive Story Questionnaire
+            1. Conversational Questionnaire
           </button>
 
           <button
@@ -799,321 +864,440 @@ function rejectLoopyCookies() {
         </div>
       </div>
 
-      {/* TAB 1: STORY-DRIVEN QUESTIONNAIRE (LAWS OF UX ENFORCED) */}
+      {/* TAB 1: ONE-QUESTION-AT-A-TIME CONVERSATIONAL TYPEWRITER QUESTIONNAIRE */}
       {activeTab === 'wizard' && (
         <div>
           <Stepper
             initialStep={wizardStep}
-            onStepChange={(step: number) => setWizardStep(step)}
+            onStepChange={(step: number) => {
+              setWizardStep(step);
+              setSubQuestionIndex(0);
+            }}
             onFinalStepCompleted={() => setActiveTab('preview')}
           >
-            {/* CHAPTER 1: THE ORIGIN */}
+            {/* CHAPTER 1: THE ORIGIN (ONE QUESTION AT A TIME) */}
             <Step>
-              <div className="pb-16 max-w-2xl mx-auto">
-                <div className="mb-6">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400">
-                    Chapter I &bull; The Origin
+              <div className="pb-16 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
+                    Chapter I &bull; Question {subQuestionIndex + 1} of 5
                   </span>
-                  <h3 className="text-2xl sm:text-3xl font-extrabold text-stone-50 mt-1 mb-2 tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                    What is the story of your digital creation?
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
-                    Let's begin by defining your product identity. Tell us what you are building and where your entity operates.
-                  </p>
+
+                  {subQuestionIndex === 0 && (
+                    <div>
+                      <TypewriterHeading text="What type of digital product are you creating?" />
+                      <div className="grid grid-cols-1 gap-3 mt-6">
+                        {[
+                          { type: 'website', title: 'Website or Web Application', desc: 'SaaS platforms, blogs, online stores, landing pages.' },
+                          { type: 'app', title: 'Mobile App', desc: 'iOS App Store or Android Google Play native apps.' },
+                          { type: 'both', title: 'Both Website & Mobile App', desc: 'Cross-platform ecosystem across web and mobile stores.' }
+                        ].map(item => (
+                          <div
+                            key={item.type}
+                            onClick={() => {
+                              setBusiness({ ...business, platformType: item.type as any });
+                              handleChapter1Next();
+                            }}
+                            className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-center justify-between ${
+                              business.platformType === item.type
+                                ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
+                                : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                            }`}
+                          >
+                            <div>
+                              <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>{item.title}</h4>
+                              <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{item.desc}</p>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                              business.platformType === item.type ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                            }`}>
+                              {business.platformType === item.type && (
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 1 && (
+                    <div>
+                      <TypewriterHeading text="What is your product or website called?" />
+                      <div className="mt-6">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={business.name}
+                          onChange={e => setBusiness({ ...business, name: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && business.name.trim() && handleChapter1Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="e.g. Acme SaaS"
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 2 && (
+                    <div>
+                      <TypewriterHeading text="What is the official company or owner entity name?" />
+                      <div className="mt-6">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={business.companyName}
+                          onChange={e => setBusiness({ ...business, companyName: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && business.companyName.trim() && handleChapter1Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="e.g. Acme Studio Inc."
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 3 && (
+                    <div>
+                      <TypewriterHeading text="What is your official website URL?" />
+                      <div className="mt-6">
+                        <input
+                          type="url"
+                          autoFocus
+                          value={business.url}
+                          onChange={e => setBusiness({ ...business, url: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && business.url.trim() && handleChapter1Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="https://example.com"
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 4 && (
+                    <div>
+                      <TypewriterHeading text="Where is your business legally registered?" />
+                      <div className="mt-6">
+                        <CustomDropdown
+                          value={business.businessCountry}
+                          onChange={val => handleCountryChange(val)}
+                          options={COUNTRY_OPTIONS}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                      1. I am building a...
-                    </label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {(['website', 'app', 'both'] as const).map(type => (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => setBusiness({ ...business, platformType: type })}
-                          className={`py-3 px-4 text-xs font-bold rounded-2xl border text-center capitalize transition-all interactive-press ${
-                            business.platformType === type
-                              ? 'bg-stone-50 text-slate-950 border-stone-50 shadow-lg'
-                              : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-slate-200'
-                          }`}
-                        >
-                          {type === 'both' ? 'Website & App' : type}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                  {subQuestionIndex > 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleChapter1Back}
+                      className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                    >
+                      ← Previous Question
+                    </button>
+                  ) : <div />}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                        2. Named (Product / Site Title)
-                      </label>
-                      <input
-                        type="text"
-                        value={business.name}
-                        onChange={e => setBusiness({ ...business, name: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-stone-50 focus:outline-none focus:border-slate-600"
-                        placeholder="e.g. Acme SaaS"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                        3. Operated by (Company / Entity)
-                      </label>
-                      <input
-                        type="text"
-                        value={business.companyName}
-                        onChange={e => setBusiness({ ...business, companyName: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-stone-50 focus:outline-none focus:border-slate-600"
-                        placeholder="Acme Technologies Inc."
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                        4. Product URL
-                      </label>
-                      <input
-                        type="url"
-                        value={business.url}
-                        onChange={e => setBusiness({ ...business, url: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-stone-50 focus:outline-none focus:border-slate-600"
-                        placeholder="https://example.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                        5. Primary Business Location
-                      </label>
-                      <CustomDropdown
-                        value={business.businessCountry}
-                        onChange={val => handleCountryChange(val)}
-                        options={COUNTRY_OPTIONS}
-                      />
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleChapter1Next}
+                    disabled={
+                      (subQuestionIndex === 1 && !business.name.trim()) ||
+                      (subQuestionIndex === 2 && !business.companyName.trim()) ||
+                      (subQuestionIndex === 3 && !business.url.trim())
+                    }
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed interactive-press"
+                  >
+                    {subQuestionIndex === 4 ? 'Next Chapter →' : 'Continue →'}
+                  </button>
                 </div>
               </div>
             </Step>
 
             {/* CHAPTER 2: THE AUDIENCE & TERRITORY */}
             <Step>
-              <div className="pb-8 max-w-2xl mx-auto">
-                <div className="mb-6">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400">
-                    Chapter II &bull; The Audience & Territory
+              <div className="pb-8 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
+                    Chapter II &bull; Target Regions
                   </span>
-                  <h3 className="text-2xl sm:text-3xl font-extrabold text-stone-50 mt-1 mb-2 tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                    Where do your users come from?
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
-                    Privacy laws apply based on where your visitors live. Select the regions your product serves (Hick's Law: 4 primary buckets).
+                  <TypewriterHeading text="Where do your users reside?" />
+                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
+                    Privacy laws apply based on visitor residence. Recommended frameworks were auto-configured for {COUNTRY_OPTIONS.find(c => c.value === business.businessCountry)?.label}.
                   </p>
+
+                  <div className="space-y-3">
+                    {REGION_CARDS.map(region => {
+                      const isSelected = region.lawIds.every(id => selectedLaws.includes(id));
+                      return (
+                        <div
+                          key={region.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedLaws(selectedLaws.filter(id => !region.lawIds.includes(id)));
+                            } else {
+                              const newLaws = Array.from(new Set([...selectedLaws, ...region.lawIds]));
+                              setSelectedLaws(newLaws);
+                            }
+                          }}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
+                            isSelected
+                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                                {region.title}
+                              </h4>
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                                {region.badge}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 leading-relaxed">{region.desc}</p>
+                          </div>
+
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                            isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                          }`}>
+                            {isSelected && (
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  {REGION_CARDS.map(region => {
-                    const isSelected = region.lawIds.every(id => selectedLaws.includes(id));
-                    return (
-                      <div
-                        key={region.id}
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedLaws(selectedLaws.filter(id => !region.lawIds.includes(id)));
-                          } else {
-                            const newLaws = Array.from(new Set([...selectedLaws, ...region.lawIds]));
-                            setSelectedLaws(newLaws);
-                          }
-                        }}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
-                          isSelected
-                            ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
-                            : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                        }`}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-sm text-stone-50" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                              {region.title}
-                            </h4>
-                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                              {region.badge}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-400 leading-relaxed">{region.desc}</p>
-                        </div>
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWizardStep(1);
+                      setSubQuestionIndex(4);
+                    }}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                  >
+                    ← Previous Chapter
+                  </button>
 
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                          isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
-                        }`}>
-                          {isSelected && (
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWizardStep(3);
+                      setSubQuestionIndex(0);
+                    }}
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                  >
+                    Next Chapter →
+                  </button>
                 </div>
               </div>
             </Step>
 
             {/* CHAPTER 3: THE DATA FOOTPRINT */}
             <Step>
-              <div className="pb-8 max-w-2xl mx-auto">
-                <div className="mb-6">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400">
-                    Chapter III &bull; The Data Footprint
+              <div className="pb-8 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
+                    Chapter III &bull; Personal Data
                   </span>
-                  <h3 className="text-2xl sm:text-3xl font-extrabold text-stone-50 mt-1 mb-2 tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                    What personal data does your product process?
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
-                    Only select data categories your platform actively handles. Minimizing data collection builds transparency and user trust.
+                  <TypewriterHeading text="What personal data passes through your product?" />
+                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
+                    Only select data types your platform actively processes. Keeping options minimal builds transparency.
                   </p>
+
+                  <div className="space-y-3">
+                    {DATA_CATEGORIES.map(cat => {
+                      const isChecked = dataCollected[cat.key as keyof DataCollectedOptions];
+                      return (
+                        <div
+                          key={cat.key}
+                          onClick={() => setDataCollected({ ...dataCollected, [cat.key]: !isChecked })}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
+                            isChecked
+                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                              {cat.title}
+                            </h4>
+                            <p className="text-xs text-slate-400 leading-relaxed">{cat.desc}</p>
+                          </div>
+
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                            isChecked ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                          }`}>
+                            {isChecked && (
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  {DATA_CATEGORIES.map(cat => {
-                    const isChecked = dataCollected[cat.key as keyof DataCollectedOptions];
-                    return (
-                      <div
-                        key={cat.key}
-                        onClick={() => setDataCollected({ ...dataCollected, [cat.key]: !isChecked })}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-start justify-between gap-4 ${
-                          isChecked
-                            ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
-                            : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                        }`}
-                      >
-                        <div className="flex-1">
-                          <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                            {cat.title}
-                          </h4>
-                          <p className="text-xs text-slate-400 leading-relaxed">{cat.desc}</p>
-                        </div>
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(2)}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                  >
+                    ← Previous Chapter
+                  </button>
 
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                          isChecked ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
-                        }`}>
-                          {isChecked && (
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(4)}
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                  >
+                    Next Chapter →
+                  </button>
                 </div>
               </div>
             </Step>
 
             {/* CHAPTER 4: THE TECH ENGINE */}
             <Step>
-              <div className="pb-8 max-w-2xl mx-auto">
-                <div className="mb-6">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400">
-                    Chapter IV &bull; The Tech Engine
+              <div className="pb-8 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
+                    Chapter IV &bull; Tech Integrations
                   </span>
-                  <h3 className="text-2xl sm:text-3xl font-extrabold text-stone-50 mt-1 mb-2 tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                    Which tools power your experience?
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
-                    Select third-party integrations in your tech stack. We will automatically insert their required legal disclosures.
+                  <TypewriterHeading text="Which third-party services power your app?" />
+                  <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
+                    Select tools in your tech stack. Required third-party legal disclosures will be auto-inserted.
                   </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {TECH_SERVICES_LIBRARY.map(service => {
+                      const isSelected = selectedServices.includes(service.id);
+                      return (
+                        <div
+                          key={service.id}
+                          onClick={() => toggleService(service.id)}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
+                              : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-xs text-stone-50">{service.name}</span>
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                              isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
+                            }`}>
+                              {isSelected && (
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-slate-400 leading-relaxed">{service.plainSummary}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {TECH_SERVICES_LIBRARY.map(service => {
-                    const isSelected = selectedServices.includes(service.id);
-                    return (
-                      <div
-                        key={service.id}
-                        onClick={() => toggleService(service.id)}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex flex-col justify-between ${
-                          isSelected
-                            ? 'bg-slate-900 border-stone-50 text-stone-50 shadow-md'
-                            : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-bold text-xs text-stone-50">{service.name}</span>
-                          <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                            isSelected ? 'bg-stone-50 text-slate-950' : 'border border-slate-700 bg-slate-950'
-                          }`}>
-                            {isSelected && (
-                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">{service.plainSummary}</p>
-                      </div>
-                    );
-                  })}
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(3)}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                  >
+                    ← Previous Chapter
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWizardStep(5);
+                      setSubQuestionIndex(0);
+                    }}
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                  >
+                    Next Chapter →
+                  </button>
                 </div>
               </div>
             </Step>
 
             {/* CHAPTER 5: THE LEGAL SEAL */}
             <Step>
-              <div className="pb-8 max-w-2xl mx-auto">
-                <div className="mb-6">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400">
-                    Chapter V &bull; The Legal Seal
+              <div className="pb-8 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+                <div>
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
+                    Chapter V &bull; Finalization ({subQuestionIndex + 1} of 2)
                   </span>
-                  <h3 className="text-2xl sm:text-3xl font-extrabold text-stone-50 mt-1 mb-2 tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                    Where should users send privacy inquiries?
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
-                    Finalize your policy agreement by declaring your designated privacy contact email and data retention policy.
-                  </p>
+
+                  {subQuestionIndex === 0 && (
+                    <div>
+                      <TypewriterHeading text="Where should users send privacy & deletion inquiries?" />
+                      <div className="mt-6">
+                        <input
+                          type="email"
+                          autoFocus
+                          value={business.contactEmail}
+                          onChange={e => setBusiness({ ...business, contactEmail: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && business.contactEmail.trim() && handleChapter5Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="privacy@example.com"
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Press Enter to continue</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {subQuestionIndex === 1 && (
+                    <div>
+                      <TypewriterHeading text="How many months do you retain user data?" />
+                      <div className="mt-6">
+                        <input
+                          type="number"
+                          autoFocus
+                          value={dataRetentionMonths}
+                          onChange={e => setDataRetentionMonths(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleChapter5Next()}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-lg text-stone-50 focus:outline-none focus:border-slate-600 mb-2 font-medium"
+                          placeholder="24"
+                        />
+                        <p className="text-xs text-slate-500 font-mono">Months (default: 24 months)</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                      Privacy Contact Email
-                    </label>
-                    <input
-                      type="email"
-                      value={business.contactEmail}
-                      onChange={e => setBusiness({ ...business, contactEmail: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-stone-50 focus:outline-none focus:border-slate-600"
-                      placeholder="privacy@example.com"
-                    />
-                  </div>
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                  <button
+                    type="button"
+                    onClick={handleChapter5Back}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
+                  >
+                    ← Previous
+                  </button>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                      Data Retention Period (Months)
-                    </label>
-                    <input
-                      type="number"
-                      value={dataRetentionMonths}
-                      onChange={e => setDataRetentionMonths(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-stone-50 focus:outline-none focus:border-slate-600"
-                      placeholder="24"
-                    />
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400 leading-relaxed">
-                    <h4 className="font-bold text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                      Privacy Guarantee
-                    </h4>
-                    <p>
-                      Your questionnaire answers are processed 100% locally inside your web browser. No company details or email addresses are ever stored on external servers.
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleChapter5Next}
+                    className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
+                  >
+                    {subQuestionIndex === 1 ? 'Generate Privacy Policy →' : 'Continue →'}
+                  </button>
                 </div>
               </div>
             </Step>
