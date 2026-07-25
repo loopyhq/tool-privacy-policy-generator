@@ -62,7 +62,7 @@ export interface PrivacyPolicyConfig {
   dpoEmail: string;
 }
 
-// --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif) ---
+// --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif with Glowing Emerald Beam Cursor) ---
 function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number }) {
   const [displayedText, setDisplayedText] = useState('');
   const indexRef = useRef(0);
@@ -85,11 +85,11 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
 
   return (
     <h3
-      className="text-2xl sm:text-4xl text-stone-100 mb-4 tracking-tight leading-tight select-none"
+      className="text-2xl sm:text-4xl text-stone-100 mb-4 tracking-tight leading-tight select-none flex items-center flex-wrap"
       style={{ fontFamily: "'Newsreader', 'Georgia', 'Cambria', serif", fontStyle: 'italic', fontWeight: 400 }}
     >
-      {displayedText}
-      <span className="animate-pulse text-emerald-400 font-sans not-italic ml-1">|</span>
+      <span>{displayedText}</span>
+      <span className="inline-block w-[3px] h-[0.85em] bg-emerald-400 rounded-full ml-1.5 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-pulse shrink-0" />
     </h3>
   );
 }
