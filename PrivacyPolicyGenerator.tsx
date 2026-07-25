@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Stepper, { Step } from './Stepper';
 
 // --- TYPES & INTERFACES ---
@@ -329,7 +331,31 @@ export function PrivacyPolicyGenerator() {
     }));
   }, []);
 
-  // Smooth scroll lock to center active question box in viewport
+  // GSAP ScrollTrigger Auto-Snap Scroll Lock
+  useEffect(() => {
+    if (typeof window === 'undefined' || !questionBoxRef.current) return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    const ctx = gsap.context(() => {
+      gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+        ScrollTrigger.create({
+          trigger: questionBoxRef.current,
+          start: 'top top+=70',
+          end: 'bottom bottom',
+          snap: {
+            snapTo: 1,
+            duration: { min: 0.2, max: 0.4 },
+            delay: 0.05,
+            ease: 'power2.inOut'
+          }
+        });
+      });
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  // Smooth scroll lock to center active question box in viewport when question changes
   useEffect(() => {
     if (activeTab === 'wizard' && questionBoxRef.current) {
       questionBoxRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -662,7 +688,7 @@ export function PrivacyPolicyGenerator() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto font-sans" ref={questionBoxRef}>
+    <div id="generator-workspace" className="w-full max-w-3xl mx-auto font-sans" ref={questionBoxRef}>
 
       {copyFeedback && (
         <div className="fixed top-20 right-5 z-50 px-4 py-2.5 bg-slate-900 border border-slate-700 text-stone-50 text-xs font-bold rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
@@ -673,9 +699,10 @@ export function PrivacyPolicyGenerator() {
 
       {/* TAB 1: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
       {activeTab === 'wizard' && (
-        <div className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-4">
+        <div className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-2">
           <Stepper
             hideIndicators={true}
+            hideFooter={true}
             initialStep={wizardStep}
             onStepChange={(step: number) => {
               setWizardStep(step);

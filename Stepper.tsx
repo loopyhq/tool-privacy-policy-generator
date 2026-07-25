@@ -18,6 +18,7 @@ export interface StepperProps {
   nextButtonText?: string;
   disableStepIndicators?: boolean;
   hideIndicators?: boolean;
+  hideFooter?: boolean;
   renderStepIndicator?: (props: { step: number; currentStep: number; onStepClick: (step: number) => void }) => React.ReactNode;
   [key: string]: any;
 }
@@ -37,6 +38,7 @@ export default function Stepper({
   nextButtonText = 'Next Step',
   disableStepIndicators = false,
   hideIndicators = false,
+  hideFooter = false,
   renderStepIndicator,
   ...rest
 }: StepperProps) {
@@ -121,7 +123,7 @@ export default function Stepper({
           {stepsArray[currentStep - 1]}
         </StepContentWrapper>
 
-        {!isCompleted && (
+        {!isCompleted && !hideFooter && (
           <div className={`footer-container ${footerClassName}`}>
             <div className={`footer-nav ${currentStep !== 1 ? 'spread' : 'end'}`}>
               {currentStep !== 1 && (
