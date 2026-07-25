@@ -89,12 +89,12 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
 
   return (
     <h3
-      className="text-3xl sm:text-5xl text-stone-50 mb-6 tracking-tight leading-[1.18] select-none flex items-center flex-wrap"
+      className="text-3xl sm:text-5xl text-stone-50 mb-6 tracking-tight leading-[1.18] select-none min-h-[2.4em] sm:min-h-[2.3em]"
       style={{ fontFamily: "'Newsreader', 'Georgia', 'Cambria', serif", fontStyle: 'italic', fontWeight: 400 }}
     >
       <span>{displayedText}</span>
       {isTyping && (
-        <span className="inline-block w-[3px] h-[0.85em] bg-emerald-400 rounded-full ml-2 shadow-[0_0_14px_rgba(52,211,153,0.95)] animate-pulse shrink-0" />
+        <span className="inline-block w-[3px] h-[0.75em] bg-emerald-400 rounded-full ml-1.5 shadow-[0_0_12px_rgba(52,211,153,0.95)] animate-pulse align-baseline" />
       )}
     </h3>
   );
