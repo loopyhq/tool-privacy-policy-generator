@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Stepper, { Step } from './Stepper';
 import BorderGlow from '../../components/BorderGlow';
+import typingMp3 from './typing.mp3';
 
 // --- TYPES & INTERFACES ---
 export interface BusinessDetails {
@@ -63,65 +64,37 @@ export interface PrivacyPolicyConfig {
   dpoEmail: string;
 }
 
-// --- TYPEWRITER SOUND EFFECT SYNTHESIZER (Warm Deep Thub Rhythm) ---
-let sharedAudioCtx: AudioContext | null = null;
+// --- TYPING MP3 AUDIO MANAGER ---
+let typingAudioInstance: HTMLAudioElement | null = null;
 
-function getAudioContext(): AudioContext | null {
+function getTypingAudio(): HTMLAudioElement | null {
   if (typeof window === 'undefined') return null;
-  try {
-    if (!sharedAudioCtx) {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContextClass) {
-        sharedAudioCtx = new AudioContextClass();
-      }
-    }
-    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
-      sharedAudioCtx.resume().catch(() => {});
-    }
-    return sharedAudioCtx;
-  } catch (e) {
-    return null;
+  if (!typingAudioInstance) {
+    typingAudioInstance = new Audio(typingMp3 || '/typing.mp3');
+    typingAudioInstance.loop = true;
+    typingAudioInstance.volume = 0.15; // Low, pleasant background volume
+  }
+  return typingAudioInstance;
+}
+
+function startTypingAudio(isMuted: boolean) {
+  if (isMuted) return;
+  const audio = getTypingAudio();
+  if (audio) {
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
   }
 }
 
-function playThubSound() {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const t = ctx.currentTime;
-
-    // Deep warm thub oscillator (130Hz - 170Hz)
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-
-    const baseFreq = 130 + Math.random() * 40;
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(baseFreq, t);
-    osc.frequency.exponentialRampToValueAtTime(50, t + 0.045);
-
-    // Warm lowpass filter to remove treble clicks
-    filter.type = 'lowpass';
-    filter.frequency.value = 300;
-
-    // Smooth soft volume envelope
-    gain.gain.setValueAtTime(0.12, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(t);
-    osc.stop(t + 0.05);
-  } catch (e) {
-    // Autoplay restrictions handle silently
+function stopTypingAudio() {
+  if (typingAudioInstance) {
+    typingAudioInstance.pause();
+    typingAudioInstance.currentTime = 0;
   }
 }
 
 // --- TYPEWRITER COMPONENT (Claude-Style Newsreader Serif with Glowing Emerald Beam Cursor) ---
-function TypewriterHeading({ text, speed = 38 }: { text: string; speed?: number }) {
+function TypewriterHeading({ text, speed = 35, isMuted = false }: { text: string; speed?: number; isMuted?: boolean }) {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const indexRef = useRef(0);
@@ -131,23 +104,24 @@ function TypewriterHeading({ text, speed = 38 }: { text: string; speed?: number 
     setIsTyping(true);
     indexRef.current = 0;
 
+    startTypingAudio(isMuted);
+
     const timer = setInterval(() => {
       if (indexRef.current < text.length) {
-        const nextChar = text[indexRef.current];
         setDisplayedText(text.slice(0, indexRef.current + 1));
         indexRef.current += 1;
-        // Play thub sound every 3rd character for a steady, relaxed rhythm
-        if (indexRef.current % 3 === 0 && nextChar !== ' ') {
-          playThubSound();
-        }
       } else {
         setIsTyping(false);
+        stopTypingAudio();
         clearInterval(timer);
       }
     }, speed);
 
-    return () => clearInterval(timer);
-  }, [text, speed]);
+    return () => {
+      clearInterval(timer);
+      stopTypingAudio();
+    };
+  }, [text, speed, isMuted]);
 
   return (
     <h3
@@ -424,6 +398,24 @@ export function PrivacyPolicyGenerator() {
   const [dataRetentionMonths, setDataRetentionMonths] = useState<string>('24');
   const [dpoEmail, setDpoEmail] = useState<string>('privacy@example.com');
   const [customPolicyText, setCustomPolicyText] = useState<string>('');
+
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('loopy_sound_muted') === 'true';
+    }
+    return false;
+  });
+
+  const toggleSound = () => {
+    const nextState = !isMuted;
+    setIsMuted(nextState);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('loopy_sound_muted', String(nextState));
+    }
+    if (nextState) {
+      stopTypingAudio();
+    }
+  };
 
   useEffect(() => {
     setBusiness(prev => ({
@@ -863,13 +855,35 @@ export function PrivacyPolicyGenerator() {
       {/* STATE 2: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
       {viewState === 'wizard' && (
         <div className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-2">
-          <div className="mb-3">
+          <div className="flex items-center justify-between mb-4">
             <button
               type="button"
-              onClick={() => setViewState('landing')}
+              onClick={() => {
+                stopTypingAudio();
+                setViewState('landing');
+              }}
               className="text-xs font-bold text-slate-500 hover:text-stone-50 transition-colors inline-flex items-center gap-1 interactive-press"
             >
               ← Back
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleSound}
+              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-stone-50 hover:border-slate-700 transition-all flex items-center gap-1.5 interactive-press"
+              title={isMuted ? 'Unmute typing sound' : 'Mute typing sound'}
+            >
+              {isMuted ? (
+                <>
+                  <span className="text-slate-500">🔇</span>
+                  <span>Sound Off</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-emerald-400">🔊</span>
+                  <span className="text-stone-200">Sound On</span>
+                </>
+              )}
             </button>
           </div>
 
@@ -889,7 +903,7 @@ export function PrivacyPolicyGenerator() {
                 <div>
                   {subQuestionIndex === 0 && (
                     <div>
-                      <TypewriterHeading text="What type of digital product are you creating?" />
+                      <TypewriterHeading text="What type of digital product are you creating?" isMuted={isMuted} />
                       <div className="grid grid-cols-1 gap-3 mt-6">
                         {[
                           { type: 'website', title: 'Website or Web Application', desc: 'SaaS platforms, blogs, online stores, landing pages.' },
@@ -928,7 +942,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 1 && (
                     <div>
-                      <TypewriterHeading text="Great choice. What is your product or website called?" />
+                      <TypewriterHeading text="Great choice. What is your product or website called?" isMuted={isMuted} />
                       <div className="mt-6">
                         <input
                           type="text"
@@ -946,7 +960,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 2 && (
                     <div>
-                      <TypewriterHeading text={business.name ? `That's a classy name! What is the legal registered entity behind ${business.name}?` : "What is the legal registered entity behind this?"} />
+                      <TypewriterHeading text={business.name ? `That's a classy name! What is the legal registered entity behind ${business.name}?` : "What is the legal registered entity behind this?"} isMuted={isMuted} />
                       <div className="mt-6">
                         <input
                           type="text"
@@ -964,7 +978,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 3 && (
                     <div>
-                      <TypewriterHeading text={business.name ? `Understood. What is the official website URL for ${business.name}?` : "What is your official website URL?"} />
+                      <TypewriterHeading text={business.name ? `Understood. What is the official website URL for ${business.name}?` : "What is your official website URL?"} isMuted={isMuted} />
                       <div className="mt-6">
                         <input
                           type="url"
@@ -982,7 +996,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 4 && (
                     <div>
-                      <TypewriterHeading text={business.companyName ? `Where is ${business.companyName} legally registered?` : "Where is your business legally registered?"} />
+                      <TypewriterHeading text={business.companyName ? `Where is ${business.companyName} legally registered?` : "Where is your business legally registered?"} isMuted={isMuted} />
                       <div className="mt-6">
                         <CustomDropdown
                           value={business.businessCountry}
@@ -1025,7 +1039,7 @@ export function PrivacyPolicyGenerator() {
             <Step>
               <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <TypewriterHeading text={business.name ? `Got it! Where do users of ${business.name} reside?` : "Where do your users reside?"} />
+                  <TypewriterHeading text={business.name ? `Got it! Where do users of ${business.name} reside?` : "Where do your users reside?"} isMuted={isMuted} />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Privacy laws apply based on visitor residence. Recommended frameworks were auto-configured for {COUNTRY_OPTIONS.find(c => c.value === business.businessCountry)?.label}.
                   </p>
@@ -1107,7 +1121,7 @@ export function PrivacyPolicyGenerator() {
             <Step>
               <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <TypewriterHeading text="Perfect. What personal data passes through your product?" />
+                  <TypewriterHeading text="Perfect. What personal data passes through your product?" isMuted={isMuted} />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Only select data types your platform actively processes. Keeping options minimal builds transparency.
                   </p>
@@ -1171,7 +1185,7 @@ export function PrivacyPolicyGenerator() {
             <Step>
               <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <TypewriterHeading text="Makes sense. Which third-party services power your tech engine?" />
+                  <TypewriterHeading text="Makes sense. Which third-party services power your tech engine?" isMuted={isMuted} />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Select tools in your tech stack. Required third-party legal disclosures will be auto-inserted.
                   </p>
@@ -1237,7 +1251,7 @@ export function PrivacyPolicyGenerator() {
                 <div>
                   {subQuestionIndex === 0 && (
                     <div>
-                      <TypewriterHeading text={business.name ? `Almost done! Where should users send privacy inquiries for ${business.name}?` : "Where should users send privacy & deletion inquiries?"} />
+                      <TypewriterHeading text={business.name ? `Almost done! Where should users send privacy inquiries for ${business.name}?` : "Where should users send privacy & deletion inquiries?"} isMuted={isMuted} />
                       <div className="mt-6">
                         <input
                           type="email"
@@ -1255,7 +1269,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 1 && (
                     <div>
-                      <TypewriterHeading text="Final touch: How many months do you retain user data?" />
+                      <TypewriterHeading text="Final touch: How many months do you retain user data?" isMuted={isMuted} />
                       <div className="mt-6">
                         <input
                           type="number"
