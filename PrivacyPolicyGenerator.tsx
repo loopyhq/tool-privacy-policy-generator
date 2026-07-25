@@ -64,40 +64,76 @@ export interface PrivacyPolicyConfig {
 }
 
 // --- TYPEWRITER SOUND EFFECT SYNTHESIZER (Satisfying Tactile Key Click) ---
-function playKeyClick() {
-  if (typeof window === 'undefined') return;
+let sharedAudioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
   try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-
-    const ctx = new AudioContextClass();
-    if (ctx.state === 'suspended') {
-      ctx.resume();
+    if (!sharedAudioCtx) {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        sharedAudioCtx = new AudioContextClass();
+      }
     }
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+  } catch (e) {
+    return null;
+  }
+}
 
+function playKeyClick() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
     const t = ctx.currentTime;
+
+    // 1. Warm mechanical thock oscillator
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    // Soft organic pitch shift per keystroke (460Hz - 640Hz)
-    const freq = 460 + Math.random() * 180;
+    const baseFreq = 380 + Math.random() * 160; // 380Hz - 540Hz warm pitch shift
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, t);
-    osc.frequency.exponentialRampToValueAtTime(110, t + 0.022);
+    osc.frequency.setValueAtTime(baseFreq, t);
+    osc.frequency.exponentialRampToValueAtTime(100, t + 0.035);
 
-    // Soft tactile volume envelope
-    gain.gain.setValueAtTime(0.035, t);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.022);
+    gain.gain.setValueAtTime(0.28, t); // Rich, audible volume
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(t);
-    osc.stop(t + 0.025);
+    osc.stop(t + 0.04);
 
-    setTimeout(() => {
-      ctx.close().catch(() => {});
-    }, 45);
+    // 2. High-frequency crisp key stroke burst
+    const bufferSize = Math.floor(ctx.sampleRate * 0.018);
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 1400;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.18, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.018);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    noise.start(t);
+    noise.stop(t + 0.022);
   } catch (e) {
     // Autoplay restrictions handle silently
   }
@@ -412,6 +448,18 @@ export function PrivacyPolicyGenerator() {
       ...prev,
       effectiveDate: new Date().toISOString().split('T')[0]
     }));
+
+    const unlockAudio = () => {
+      getAudioContext();
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
   }, []);
 
   // Smooth scroll focus to center active question box in viewport when question changes
