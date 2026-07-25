@@ -710,7 +710,7 @@ export function PrivacyPolicyGenerator() {
                   setWizardStep(1);
                   setSubQuestionIndex(0);
                 }}
-                className="cursor-pointer transition-transform hover:scale-[1.03] interactive-press"
+                className="cursor-pointer transition-all duration-500 ease-out hover:scale-[1.025]"
               >
                 <div className="px-10 py-4 sm:py-5 flex items-center justify-center gap-3">
                   <span className="text-base sm:text-lg font-extrabold text-stone-50 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
