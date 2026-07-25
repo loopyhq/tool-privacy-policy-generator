@@ -791,7 +791,6 @@ export function PrivacyPolicyGenerator() {
                             key={item.type}
                             onClick={() => {
                               setBusiness({ ...business, platformType: item.type as any });
-                              handleChapter1Next();
                             }}
                             className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 interactive-press flex items-center justify-between ${
                               business.platformType === item.type
