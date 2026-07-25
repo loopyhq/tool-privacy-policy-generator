@@ -272,7 +272,7 @@ const COUNTRY_OPTIONS: CustomDropdownOption[] = [
 ];
 
 export function PrivacyPolicyGenerator() {
-  const [activeTab, setActiveTab] = useState<'wizard' | 'preview'>('wizard');
+  const [viewState, setViewState] = useState<'landing' | 'wizard' | 'preview'>('landing');
   const [wizardStep, setWizardStep] = useState<number>(1);
   const [subQuestionIndex, setSubQuestionIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'legal' | 'plain'>('legal');
@@ -336,10 +336,10 @@ export function PrivacyPolicyGenerator() {
 
   // Smooth scroll focus to center active question box in viewport when question changes
   useEffect(() => {
-    if (activeTab === 'wizard' && questionBoxRef.current) {
+    if (viewState === 'wizard' && questionBoxRef.current) {
       questionBoxRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [wizardStep, subQuestionIndex, activeTab]);
+  }, [wizardStep, subQuestionIndex, viewState]);
 
   const triggerToast = (msg: string) => {
     setCopyFeedback(msg);
@@ -633,7 +633,7 @@ export function PrivacyPolicyGenerator() {
     if (subQuestionIndex < 1) {
       setSubQuestionIndex(subQuestionIndex + 1);
     } else {
-      setActiveTab('preview');
+      setViewState('preview');
     }
   };
 
@@ -676,9 +676,83 @@ export function PrivacyPolicyGenerator() {
         </div>
       )}
 
-      {/* TAB 1: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
-      {activeTab === 'wizard' && (
+      {/* STATE 1: HIGH-CONVERTING SEO HERO OVERVIEW PAGE */}
+      {viewState === 'landing' && (
+        <div className="py-8 sm:py-12">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-[11px] font-mono font-semibold text-emerald-400 mb-6">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              GDPR &bull; CCPA &bull; PIPEDA &bull; DPDP Act Compliant
+            </div>
+
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-stone-50 tracking-tight leading-tight mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              Generate Your Privacy Policy in Seconds
+            </h2>
+
+            <p className="text-sm sm:text-base text-slate-400 leading-relaxed font-normal mb-8">
+              Create a custom, legally structured Privacy Policy for your website or app. 100% free, 100% in your browser with zero server data collection.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewState('wizard');
+                  setWizardStep(1);
+                  setSubQuestionIndex(0);
+                }}
+                className="w-full sm:w-auto px-8 py-4 bg-stone-50 text-slate-950 text-sm font-extrabold rounded-2xl hover:bg-stone-200 transition-all shadow-xl hover:scale-[1.02] interactive-press"
+                style={{ fontFamily: 'Outfit, sans-serif' }}
+              >
+                Start Generating Policy →
+              </button>
+            </div>
+          </div>
+
+          {/* Feature Highlights Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-10 pt-8 border-t border-slate-900">
+            <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 font-bold text-xs mb-3">
+                01
+              </div>
+              <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>100% Client-Side</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">No data ever touches any backend server. Your information stays 100% private in your browser.</p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 font-bold text-xs mb-3">
+                02
+              </div>
+              <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>Global Compliance</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">Pre-configured clauses for EU GDPR, California CCPA/CPRA, Canada PIPEDA, and India DPDP Act.</p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 font-bold text-xs mb-3">
+                03
+              </div>
+              <h4 className="font-bold text-sm text-stone-50 mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>Instant Export</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">Copy production-ready Markdown or HTML, or download a clean `.md` document in one click.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STATE 2: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
+      {viewState === 'wizard' && (
         <div className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-2">
+          {/* Header Return button */}
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-900">
+            <button
+              type="button"
+              onClick={() => setViewState('landing')}
+              className="text-xs font-semibold text-slate-400 hover:text-stone-50 transition-colors flex items-center gap-1.5"
+            >
+              ← Back to Overview & FAQs
+            </button>
+            <span className="text-[11px] font-mono text-slate-500">Step {wizardStep} of 5</span>
+          </div>
+
           <Stepper
             hideIndicators={true}
             hideFooter={true}
@@ -687,9 +761,9 @@ export function PrivacyPolicyGenerator() {
               setWizardStep(step);
               setSubQuestionIndex(0);
             }}
-            onFinalStepCompleted={() => setActiveTab('preview')}
+            onFinalStepCompleted={() => setViewState('preview')}
           >
-            {/* CHAPTER 1: THE ORIGIN (ONE QUESTION AT A TIME) */}
+            {/* CHAPTER 1: THE ORIGIN (CONNECTING & ENGAGING STORYTELLING) */}
             <Step>
               <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
@@ -735,7 +809,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 1 && (
                     <div>
-                      <TypewriterHeading text="What is your product or website called?" />
+                      <TypewriterHeading text="Great choice. What is your product or website called?" />
                       <div className="mt-6">
                         <input
                           type="text"
@@ -753,7 +827,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 2 && (
                     <div>
-                      <TypewriterHeading text="What is the official company or owner entity name?" />
+                      <TypewriterHeading text={business.name ? `That's a classy name! What is the legal registered entity behind ${business.name}?` : "What is the legal registered entity behind this?"} />
                       <div className="mt-6">
                         <input
                           type="text"
@@ -771,7 +845,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 3 && (
                     <div>
-                      <TypewriterHeading text="What is your official website URL?" />
+                      <TypewriterHeading text={business.name ? `Understood. What is the official website URL for ${business.name}?` : "What is your official website URL?"} />
                       <div className="mt-6">
                         <input
                           type="url"
@@ -789,7 +863,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 4 && (
                     <div>
-                      <TypewriterHeading text="Where is your business legally registered?" />
+                      <TypewriterHeading text={business.companyName ? `Where is ${business.companyName} legally registered?` : "Where is your business legally registered?"} />
                       <div className="mt-6">
                         <CustomDropdown
                           value={business.businessCountry}
@@ -822,7 +896,7 @@ export function PrivacyPolicyGenerator() {
                     }
                     className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed interactive-press"
                   >
-                    {subQuestionIndex === 4 ? 'Continue →' : 'Continue →'}
+                    Continue →
                   </button>
                 </div>
               </div>
@@ -832,7 +906,7 @@ export function PrivacyPolicyGenerator() {
             <Step>
               <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <TypewriterHeading text="Where do your users reside?" />
+                  <TypewriterHeading text={business.name ? `Got it! Where do users of ${business.name} reside?` : "Where do your users reside?"} />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Privacy laws apply based on visitor residence. Recommended frameworks were auto-configured for {COUNTRY_OPTIONS.find(c => c.value === business.businessCountry)?.label}.
                   </p>
@@ -914,7 +988,7 @@ export function PrivacyPolicyGenerator() {
             <Step>
               <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <TypewriterHeading text="What personal data passes through your product?" />
+                  <TypewriterHeading text="Perfect. What personal data passes through your product?" />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Only select data types your platform actively processes. Keeping options minimal builds transparency.
                   </p>
@@ -978,7 +1052,7 @@ export function PrivacyPolicyGenerator() {
             <Step>
               <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <TypewriterHeading text="Which third-party services power your app?" />
+                  <TypewriterHeading text="Makes sense. Which third-party services power your tech engine?" />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Select tools in your tech stack. Required third-party legal disclosures will be auto-inserted.
                   </p>
@@ -1044,7 +1118,7 @@ export function PrivacyPolicyGenerator() {
                 <div>
                   {subQuestionIndex === 0 && (
                     <div>
-                      <TypewriterHeading text="Where should users send privacy & deletion inquiries?" />
+                      <TypewriterHeading text={business.name ? `Almost done! Where should users send privacy inquiries for ${business.name}?` : "Where should users send privacy & deletion inquiries?"} />
                       <div className="mt-6">
                         <input
                           type="email"
@@ -1062,7 +1136,7 @@ export function PrivacyPolicyGenerator() {
 
                   {subQuestionIndex === 1 && (
                     <div>
-                      <TypewriterHeading text="How many months do you retain user data?" />
+                      <TypewriterHeading text="Final touch: How many months do you retain user data?" />
                       <div className="mt-6">
                         <input
                           type="number"
@@ -1102,14 +1176,14 @@ export function PrivacyPolicyGenerator() {
         </div>
       )}
 
-      {/* TAB 2: LIVE POLICY PREVIEW & OUTPUT */}
-      {activeTab === 'preview' && (
+      {/* STATE 3: LIVE POLICY PREVIEW & OUTPUT */}
+      {viewState === 'preview' && (
         <div className="py-6">
           <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
-                  setActiveTab('wizard');
+                  setViewState('wizard');
                   setWizardStep(1);
                   setSubQuestionIndex(0);
                 }}
