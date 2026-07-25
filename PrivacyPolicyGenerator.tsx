@@ -85,11 +85,11 @@ function TypewriterHeading({ text, speed = 20 }: { text: string; speed?: number 
 
   return (
     <h3
-      className="text-2xl sm:text-4xl text-stone-100 mb-4 tracking-tight leading-tight select-none flex items-center flex-wrap"
+      className="text-3xl sm:text-5xl text-stone-50 mb-6 tracking-tight leading-[1.18] select-none flex items-center flex-wrap"
       style={{ fontFamily: "'Newsreader', 'Georgia', 'Cambria', serif", fontStyle: 'italic', fontWeight: 400 }}
     >
       <span>{displayedText}</span>
-      <span className="inline-block w-[3px] h-[0.85em] bg-emerald-400 rounded-full ml-1.5 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-pulse shrink-0" />
+      <span className="inline-block w-[3px] h-[0.85em] bg-emerald-400 rounded-full ml-2 shadow-[0_0_14px_rgba(52,211,153,0.95)] animate-pulse shrink-0" />
     </h3>
   );
 }
@@ -131,11 +131,11 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-sm text-stone-50 flex items-center justify-between transition-all hover:border-slate-700 focus:outline-none focus:border-slate-600 interactive-press"
+        className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-base text-stone-50 flex items-center justify-between transition-all hover:border-slate-700 focus:outline-none focus:border-slate-600 interactive-press"
       >
         <span className="truncate font-medium">{selectedOption ? selectedOption.label : placeholder}</span>
         <svg
-          className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-stone-50' : ''}`}
+          className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-stone-50' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -146,7 +146,7 @@ function CustomDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-y-auto max-h-60 p-1.5 space-y-1">
+        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-y-auto max-h-60 p-2 space-y-1">
           {options.map(option => {
             const isSelected = option.value === value;
             return (
@@ -157,7 +157,7 @@ function CustomDropdown({
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
                   isSelected
                     ? 'bg-slate-800 text-stone-50 font-bold'
                     : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
@@ -165,7 +165,7 @@ function CustomDropdown({
               >
                 <span>{option.label}</span>
                 {isSelected && (
-                  <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 )}
@@ -274,6 +274,9 @@ export function PrivacyPolicyGenerator() {
   const [isEditable, setIsEditable] = useState<boolean>(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
+  // Focus container ref for scroll locking viewport focus
+  const questionBoxRef = useRef<HTMLDivElement>(null);
+
   // Cookie Banner options
   const [bannerTheme, setBannerTheme] = useState<'dark' | 'light' | 'navy' | 'emerald' | 'monochrome'>('dark');
   const [bannerPos, setBannerPos] = useState<'bottom-card' | 'bottom-bar' | 'bottom-left' | 'bottom-right'>('bottom-card');
@@ -336,6 +339,13 @@ export function PrivacyPolicyGenerator() {
       effectiveDate: new Date().toISOString().split('T')[0]
     }));
   }, []);
+
+  // Smooth scroll lock to center active question box in viewport
+  useEffect(() => {
+    if (activeTab === 'wizard' && questionBoxRef.current) {
+      questionBoxRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [wizardStep, subQuestionIndex, activeTab]);
 
   const triggerToast = (msg: string) => {
     setCopyFeedback(msg);
@@ -793,7 +803,7 @@ function rejectLoopyCookies() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto font-sans">
+    <div className="w-full max-w-3xl mx-auto font-sans" ref={questionBoxRef}>
 
       {copyFeedback && (
         <div className="fixed top-20 right-5 z-50 px-4 py-2.5 bg-slate-900 border border-slate-700 text-stone-50 text-xs font-bold rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
@@ -811,7 +821,7 @@ function rejectLoopyCookies() {
               activeTab === 'wizard' ? 'bg-stone-50 text-slate-950 shadow-md' : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
             }`}
           >
-            1. Conversational Questionnaire
+            1. Conversational Generator
           </button>
 
           <button
@@ -864,10 +874,11 @@ function rejectLoopyCookies() {
         </div>
       </div>
 
-      {/* TAB 1: ONE-QUESTION-AT-A-TIME CONVERSATIONAL TYPEWRITER QUESTIONNAIRE */}
+      {/* TAB 1: IMMERSIVE FULL-VIEWPORT CONVERSATIONAL QUESTIONNAIRE */}
       {activeTab === 'wizard' && (
-        <div>
+        <div className="min-h-[70vh] sm:min-h-[78vh] flex flex-col justify-center my-4">
           <Stepper
+            hideIndicators={true}
             initialStep={wizardStep}
             onStepChange={(step: number) => {
               setWizardStep(step);
@@ -877,12 +888,8 @@ function rejectLoopyCookies() {
           >
             {/* CHAPTER 1: THE ORIGIN (ONE QUESTION AT A TIME) */}
             <Step>
-              <div className="pb-16 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
-                    Chapter I &bull; Question {subQuestionIndex + 1} of 5
-                  </span>
-
                   {subQuestionIndex === 0 && (
                     <div>
                       <TypewriterHeading text="What type of digital product are you creating?" />
@@ -991,7 +998,7 @@ function rejectLoopyCookies() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
                   {subQuestionIndex > 0 ? (
                     <button
                       type="button"
@@ -1012,7 +1019,7 @@ function rejectLoopyCookies() {
                     }
                     className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed interactive-press"
                   >
-                    {subQuestionIndex === 4 ? 'Next Chapter →' : 'Continue →'}
+                    {subQuestionIndex === 4 ? 'Continue →' : 'Continue →'}
                   </button>
                 </div>
               </div>
@@ -1020,11 +1027,8 @@ function rejectLoopyCookies() {
 
             {/* CHAPTER 2: THE AUDIENCE & TERRITORY */}
             <Step>
-              <div className="pb-8 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
-                    Chapter II &bull; Target Regions
-                  </span>
                   <TypewriterHeading text="Where do your users reside?" />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Privacy laws apply based on visitor residence. Recommended frameworks were auto-configured for {COUNTRY_OPTIONS.find(c => c.value === business.businessCountry)?.label}.
@@ -1077,7 +1081,7 @@ function rejectLoopyCookies() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
                   <button
                     type="button"
                     onClick={() => {
@@ -1086,7 +1090,7 @@ function rejectLoopyCookies() {
                     }}
                     className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
                   >
-                    ← Previous Chapter
+                    ← Previous
                   </button>
 
                   <button
@@ -1097,7 +1101,7 @@ function rejectLoopyCookies() {
                     }}
                     className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
                   >
-                    Next Chapter →
+                    Continue →
                   </button>
                 </div>
               </div>
@@ -1105,11 +1109,8 @@ function rejectLoopyCookies() {
 
             {/* CHAPTER 3: THE DATA FOOTPRINT */}
             <Step>
-              <div className="pb-8 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
-                    Chapter III &bull; Personal Data
-                  </span>
                   <TypewriterHeading text="What personal data passes through your product?" />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Only select data types your platform actively processes. Keeping options minimal builds transparency.
@@ -1150,13 +1151,13 @@ function rejectLoopyCookies() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
                   <button
                     type="button"
                     onClick={() => setWizardStep(2)}
                     className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
                   >
-                    ← Previous Chapter
+                    ← Previous
                   </button>
 
                   <button
@@ -1164,7 +1165,7 @@ function rejectLoopyCookies() {
                     onClick={() => setWizardStep(4)}
                     className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
                   >
-                    Next Chapter →
+                    Continue →
                   </button>
                 </div>
               </div>
@@ -1172,11 +1173,8 @@ function rejectLoopyCookies() {
 
             {/* CHAPTER 4: THE TECH ENGINE */}
             <Step>
-              <div className="pb-8 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
-                    Chapter IV &bull; Tech Integrations
-                  </span>
                   <TypewriterHeading text="Which third-party services power your app?" />
                   <p className="text-xs text-slate-400 leading-relaxed font-medium mb-6">
                     Select tools in your tech stack. Required third-party legal disclosures will be auto-inserted.
@@ -1214,13 +1212,13 @@ function rejectLoopyCookies() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
                   <button
                     type="button"
                     onClick={() => setWizardStep(3)}
                     className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-stone-50 transition-colors"
                   >
-                    ← Previous Chapter
+                    ← Previous
                   </button>
 
                   <button
@@ -1231,7 +1229,7 @@ function rejectLoopyCookies() {
                     }}
                     className="px-6 py-2.5 bg-stone-50 text-slate-950 text-xs font-bold rounded-xl hover:bg-stone-200 transition-all interactive-press"
                   >
-                    Next Chapter →
+                    Continue →
                   </button>
                 </div>
               </div>
@@ -1239,12 +1237,8 @@ function rejectLoopyCookies() {
 
             {/* CHAPTER 5: THE LEGAL SEAL */}
             <Step>
-              <div className="pb-8 max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
+              <div className="max-w-xl mx-auto min-h-[380px] flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400 block mb-2">
-                    Chapter V &bull; Finalization ({subQuestionIndex + 1} of 2)
-                  </span>
-
                   {subQuestionIndex === 0 && (
                     <div>
                       <TypewriterHeading text="Where should users send privacy & deletion inquiries?" />
@@ -1282,7 +1276,7 @@ function rejectLoopyCookies() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-6">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-900 mt-8">
                   <button
                     type="button"
                     onClick={handleChapter5Back}
@@ -1320,7 +1314,7 @@ function rejectLoopyCookies() {
               </button>
               <button
                 onClick={() => setViewMode('plain')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
                   viewMode === 'plain' ? 'bg-slate-800 text-stone-50' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >

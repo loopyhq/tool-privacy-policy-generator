@@ -17,6 +17,7 @@ export interface StepperProps {
   backButtonText?: string;
   nextButtonText?: string;
   disableStepIndicators?: boolean;
+  hideIndicators?: boolean;
   renderStepIndicator?: (props: { step: number; currentStep: number; onStepClick: (step: number) => void }) => React.ReactNode;
   [key: string]: any;
 }
@@ -35,6 +36,7 @@ export default function Stepper({
   backButtonText = 'Back',
   nextButtonText = 'Next Step',
   disableStepIndicators = false,
+  hideIndicators = false,
   renderStepIndicator,
   ...rest
 }: StepperProps) {
@@ -76,37 +78,39 @@ export default function Stepper({
   return (
     <div className="outer-container" {...rest}>
       <div className={`step-circle-container ${stepCircleContainerClassName}`}>
-        <div className={`step-indicator-row ${stepContainerClassName}`}>
-          {stepsArray.map((_, index) => {
-            const stepNumber = index + 1;
-            const isNotLastStep = index < totalSteps - 1;
-            return (
-              <React.Fragment key={stepNumber}>
-                {renderStepIndicator ? (
-                  renderStepIndicator({
-                    step: stepNumber,
-                    currentStep,
-                    onStepClick: clicked => {
-                      setDirection(clicked > currentStep ? 1 : -1);
-                      updateStep(clicked);
-                    }
-                  })
-                ) : (
-                  <StepIndicator
-                    step={stepNumber}
-                    disableStepIndicators={disableStepIndicators}
-                    currentStep={currentStep}
-                    onClickStep={clicked => {
-                      setDirection(clicked > currentStep ? 1 : -1);
-                      updateStep(clicked);
-                    }}
-                  />
-                )}
-                {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
-              </React.Fragment>
-            );
-          })}
-        </div>
+        {!hideIndicators && (
+          <div className={`step-indicator-row ${stepContainerClassName}`}>
+            {stepsArray.map((_, index) => {
+              const stepNumber = index + 1;
+              const isNotLastStep = index < totalSteps - 1;
+              return (
+                <React.Fragment key={stepNumber}>
+                  {renderStepIndicator ? (
+                    renderStepIndicator({
+                      step: stepNumber,
+                      currentStep,
+                      onStepClick: clicked => {
+                        setDirection(clicked > currentStep ? 1 : -1);
+                        updateStep(clicked);
+                      }
+                    })
+                  ) : (
+                    <StepIndicator
+                      step={stepNumber}
+                      disableStepIndicators={disableStepIndicators}
+                      currentStep={currentStep}
+                      onClickStep={clicked => {
+                        setDirection(clicked > currentStep ? 1 : -1);
+                        updateStep(clicked);
+                      }}
+                    />
+                  )}
+                  {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
 
         <StepContentWrapper
           isCompleted={isCompleted}
