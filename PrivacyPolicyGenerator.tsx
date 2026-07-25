@@ -1,6 +1,4 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Stepper, { Step } from './Stepper';
 
 // --- TYPES & INTERFACES ---
@@ -331,31 +329,7 @@ export function PrivacyPolicyGenerator() {
     }));
   }, []);
 
-  // GSAP ScrollTrigger Auto-Snap Scroll Lock
-  useEffect(() => {
-    if (typeof window === 'undefined' || !questionBoxRef.current) return;
-    gsap.registerPlugin(ScrollTrigger);
-
-    const ctx = gsap.context(() => {
-      gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
-        ScrollTrigger.create({
-          trigger: questionBoxRef.current,
-          start: 'top top+=70',
-          end: 'bottom bottom',
-          snap: {
-            snapTo: 1,
-            duration: { min: 0.2, max: 0.4 },
-            delay: 0.05,
-            ease: 'power2.inOut'
-          }
-        });
-      });
-    });
-
-    return () => ctx.revert();
-  }, []);
-
-  // Smooth scroll lock to center active question box in viewport when question changes
+  // Smooth scroll focus to center active question box in viewport when question changes
   useEffect(() => {
     if (activeTab === 'wizard' && questionBoxRef.current) {
       questionBoxRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
