@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Stepper, { Step } from './Stepper';
+import BorderGlow from '../../components/BorderGlow';
 
 // --- TYPES & INTERFACES ---
 export interface BusinessDetails {
@@ -693,19 +694,31 @@ export function PrivacyPolicyGenerator() {
               Create a custom, legally structured Privacy Policy for your website or app. 100% free, 100% in your browser with zero server data collection.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                type="button"
+            <div className="flex flex-col items-center justify-center gap-4 my-8">
+              <BorderGlow
+                edgeSensitivity={30}
+                glowColor="160 84 65"
+                backgroundColor="#0f172a"
+                borderRadius={20}
+                glowRadius={35}
+                glowIntensity={1.2}
+                coneSpread={25}
+                animated={true}
+                colors={['#34d399', '#38bdf8', '#a855f7']}
                 onClick={() => {
                   setViewState('wizard');
                   setWizardStep(1);
                   setSubQuestionIndex(0);
                 }}
-                className="w-full sm:w-auto px-8 py-4 bg-stone-50 text-slate-950 text-sm font-extrabold rounded-2xl hover:bg-stone-200 transition-all shadow-xl hover:scale-[1.02] interactive-press"
-                style={{ fontFamily: 'Outfit, sans-serif' }}
+                className="cursor-pointer transition-transform hover:scale-[1.03] interactive-press"
               >
-                Start Generating Policy →
-              </button>
+                <div className="px-10 py-4 sm:py-5 flex items-center justify-center gap-3">
+                  <span className="text-base sm:text-lg font-extrabold text-stone-50 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                    Start Generating Policy
+                  </span>
+                  <span className="text-emerald-400 font-bold text-xl">→</span>
+                </div>
+              </BorderGlow>
             </div>
           </div>
 
