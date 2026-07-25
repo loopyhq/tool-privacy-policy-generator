@@ -63,27 +63,6 @@ export interface PrivacyPolicyConfig {
   dpoEmail: string;
 }
 
-// --- TYPEWRITER SOUND EFFECT SYNTHESIZER (Satisfying Tactile Key Click) ---
-let sharedAudioCtx: AudioContext | null = null;
-
-function getAudioContext(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    if (!sharedAudioCtx) {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContextClass) {
-        sharedAudioCtx = new AudioContextClass();
-      }
-    }
-    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
-      sharedAudioCtx.resume().catch(() => {});
-    }
-    return sharedAudioCtx;
-  } catch (e) {
-    return null;
-  }
-}
-
 // --- TYPEWRITER SOUND EFFECT SYNTHESIZER (Warm Deep Thub Rhythm) ---
 let sharedAudioCtx: AudioContext | null = null;
 
